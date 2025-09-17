@@ -64,7 +64,17 @@ async def handle_function_call(payload: Dict[Any, Any]):
             logger.info("About to call search_hotels_tool")
             result = await search_hotels_tool(parameters)
             logger.info(f"search_hotels_tool returned: {type(result)}")
-            return result
+            
+            # VAPI expects results in a specific format
+            tool_call_id = tool_calls[0].get("id") if tool_calls else "unknown"
+            return JSONResponse({
+                "results": [
+                    {
+                        "toolCallId": tool_call_id,
+                        "result": result
+                    }
+                ]
+            })
         elif function_name == "book_hotel":
             # Pass the full payload to get call data (phone number)
             return await book_hotel_tool(parameters, payload.get("call", {}))
