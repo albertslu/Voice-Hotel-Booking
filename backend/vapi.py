@@ -57,8 +57,10 @@ async def handle_function_call(payload: Dict[Any, Any]):
         
         logger.info(f"Function call: {function_name} with parameters: {parameters}")
         logger.info(f"Function name type: {type(function_name)}, repr: {repr(function_name)}")
+        logger.info("About to check function_name == 'search_hotels'")
         
         if function_name == "search_hotels":
+            logger.info("Matched search_hotels function")
             logger.info("About to call search_hotels_tool")
             result = await search_hotels_tool(parameters)
             logger.info(f"search_hotels_tool returned: {type(result)}")
