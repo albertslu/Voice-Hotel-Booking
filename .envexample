@@ -1,51 +1,26 @@
-# Database Configuration
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_anon_key
-DATABASE_URL=postgresql://username:password@host:port/database
-
-# FastAPI Configuration
-SECRET_KEY=your_secret_key_here
-DEBUG=False
-ALLOWED_HOSTS=hotelbooking.buzz,www.hotelbooking.buzz,localhost,127.0.0.1
-
 # Environment
-ENVIRONMENT=production
+ENVIRONMENT=development
+DEBUG=true
 PORT=8000
+SECRET_KEY=your-super-secret-key-change-this-in-production
 
-# Domain Configuration
-DOMAIN=hotelbooking.buzz
-BASE_URL=https://hotelbooking.buzz
-WEBHOOK_URL=https://hotelbooking.buzz/webhook/vapi
+# FastAPI & CORS Configuration
+CORS_ORIGINS=["http://localhost:3000","http://localhost:8000","https://hotelbooking.buzz","https://www.hotelbooking.buzz"]
+ALLOWED_HOSTS=["localhost","127.0.0.1","api.hotelbooking.buzz"]
 
-# VAPI Configuration (for voice agent)
+# Domain Configuration (for production)
+WEBHOOK_URL=https://api.hotelbooking.buzz/webhook/vapi
+
+# VAPI Configuration (Voice AI Platform)
 VAPI_API_KEY=your_vapi_api_key
-VAPI_PHONE_NUMBER_ID=your_vapi_phone_number_id
+VAPI_PUBLIC_KEY=your_vapi_public_key
 VAPI_WEBHOOK_SECRET=your_vapi_webhook_secret
 
 # Amadeus Hotel API Configuration
 AMADEUS_API_KEY=your_amadeus_api_key
 AMADEUS_API_SECRET=your_amadeus_api_secret
-AMADEUS_BASE_URL=https://api.amadeus.com/v1
 
-# AWS Configuration
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=hotelbooking-assets
-
-# SSL/Security
-SSL_REDIRECT=True
-SECURE_PROXY_SSL_HEADER=True
-
-# Logging
-LOG_LEVEL=INFO
-
-# Optional: Error Tracking (can add later)
-# SENTRY_DSN=your_sentry_dsn_for_error_tracking
-
-# Optional: Email for booking confirmations (can add later)
-# SMTP_HOST=smtp.gmail.com
-# SMTP_PORT=587
-# SMTP_USER=your_email@gmail.com
-# SMTP_PASSWORD=your_app_password
-# FROM_EMAIL=noreply@hotelbooking.buzz
+# Supabase Configuration
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
