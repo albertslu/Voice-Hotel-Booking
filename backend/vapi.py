@@ -163,25 +163,12 @@ async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
         
         result_text = f"I found {len(hotel_list)} hotels in {destination}:\n" + "\n".join(hotel_descriptions)
         
-        return JSONResponse({
-            "result": result_text,
-            "success": True,
-            "hotels": hotel_list,
-            "search_params": {
-                "destination": destination,
-                "check_in": check_in_date,
-                "check_out": check_out_date,
-                "guests": guests
-            }
-        })
+        # VAPI expects just the result string, not a JSONResponse
+        return result_text
         
     except Exception as e:
         logger.error(f"Error in search_hotels_tool: {e}")
-        return JSONResponse({
-            "result": "I'm having trouble searching for hotels right now. Please try again.",
-            "success": False,
-            "error": str(e)
-        }, status_code=500)
+        return "I'm having trouble searching for hotels right now. Please try again."
 
 async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
     """
