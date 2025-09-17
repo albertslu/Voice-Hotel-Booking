@@ -58,7 +58,10 @@ async def handle_function_call(payload: Dict[Any, Any]):
         logger.info(f"Function call: {function_name} with parameters: {parameters}")
         
         if function_name == "search_hotels":
-            return await search_hotels_tool(parameters)
+            logger.info("About to call search_hotels_tool")
+            result = await search_hotels_tool(parameters)
+            logger.info(f"search_hotels_tool returned: {type(result)}")
+            return result
         elif function_name == "book_hotel":
             # Pass the full payload to get call data (phone number)
             return await book_hotel_tool(parameters, payload.get("call", {}))
@@ -86,34 +89,45 @@ async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
     - guests: number (number of adults)
     """
     try:
+        logger.info("Starting search_hotels_tool execution")
+        
         # Extract parameters
         destination = parameters.get("destination")
         check_in_date = parameters.get("check_in_date")
         check_out_date = parameters.get("check_out_date")
         guests = int(parameters.get("guests", 1))
         
+        logger.info(f"Extracted parameters: dest={destination}, checkin={check_in_date}, checkout={check_out_date}, guests={guests}")
+        
         # Validate required parameters
         if not all([destination, check_in_date, check_out_date]):
+            logger.warning("Missing required parameters")
             return JSONResponse({
                 "error": "Missing required parameters",
                 "required": ["destination", "check_in_date", "check_out_date"]
             }, status_code=400)
         
         # Get city code from destination
+        logger.info(f"Getting city code for {destination}")
         city_code = await amadeus_client.get_city_code(destination)
+        logger.info(f"Got city code: {city_code}")
+        
         if not city_code:
+            logger.warning(f"No city code found for {destination}")
             return JSONResponse({
                 "result": f"Could not find city code for {destination}. Please try a different city name.",
                 "success": False
             })
         
         # Search hotels
+        logger.info(f"Searching hotels for city_code={city_code}")
         hotels = await amadeus_client.search_hotels(
             city_code=city_code,
             check_in_date=check_in_date,
             check_out_date=check_out_date,
             adults=guests
         )
+        logger.info(f"Got {len(hotels) if hotels else 0} hotels from Amadeus")
         
         if not hotels:
             return JSONResponse({
