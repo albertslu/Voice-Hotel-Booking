@@ -1,29 +1,35 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
+import json
 
 
 class Settings(BaseSettings):
-    # Database
-    supabase_url: str
-    supabase_key: str
-    supabase_service_key: Optional[str] = None
-    database_url: Optional[str] = None
-    
-    # FastAPI
-    secret_key: str
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    
     # Environment
     environment: str = "development"
+    debug: bool = True
+    port: int = 8000
+    secret_key: str
     
-    # VAPI
+    # FastAPI & CORS
+    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000", "https://hotelbooking.buzz"]
+    allowed_hosts: List[str] = ["localhost", "127.0.0.1", "api.hotelbooking.buzz"]
+    
+    # Domain Configuration
+    webhook_url: str = "https://api.hotelbooking.buzz/webhook/vapi"
+    
+    # VAPI Configuration
     vapi_api_key: Optional[str] = None
-    vapi_phone_number_id: Optional[str] = None
+    vapi_public_key: Optional[str] = None
+    vapi_webhook_secret: Optional[str] = None
     
-    # Hotel APIs
-    booking_api_key: Optional[str] = None
-    expedia_api_key: Optional[str] = None
+    # Amadeus Configuration
+    amadeus_api_key: str
+    amadeus_api_secret: str
+    
+    # Supabase Configuration
+    supabase_url: str
+    supabase_anon_key: str
+    supabase_service_role_key: Optional[str] = None
     
     # Logging
     log_level: str = "INFO"
@@ -31,6 +37,17 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        
+        @classmethod
+        def parse_env_var(cls, field_name: str, raw_val: str):
+            if field_name in ['cors_origins', 'allowed_hosts']:
+                # Parse JSON-like strings for lists
+                try:
+                    return json.loads(raw_val)
+                except json.JSONDecodeError:
+                    # Fallback to comma-separated values
+                    return [item.strip() for item in raw_val.split(',')]
+            return cls.json_loads(raw_val)
 
 
 settings = Settings()
