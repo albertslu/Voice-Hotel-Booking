@@ -109,7 +109,11 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply updated_at triggers
+-- Apply updated_at triggers (drop and recreate to avoid conflicts)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_hotels_updated_at ON hotels;
+DROP TRIGGER IF EXISTS update_bookings_updated_at ON bookings;
+
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_hotels_updated_at BEFORE UPDATE ON hotels FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_bookings_updated_at BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -120,6 +124,25 @@ ALTER TABLE hotels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vapi_call_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_info ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Users can view their own data" ON users;
+DROP POLICY IF EXISTS "Hotels are viewable by everyone" ON hotels;
+DROP POLICY IF EXISTS "Bookings are viewable by everyone" ON bookings;
+DROP POLICY IF EXISTS "VAPI logs are viewable by everyone" ON vapi_call_logs;
+DROP POLICY IF EXISTS "Payment info is viewable by everyone" ON payment_info;
+
+DROP POLICY IF EXISTS "Service role can insert users" ON users;
+DROP POLICY IF EXISTS "Service role can insert hotels" ON hotels;
+DROP POLICY IF EXISTS "Service role can insert bookings" ON bookings;
+DROP POLICY IF EXISTS "Service role can insert vapi logs" ON vapi_call_logs;
+DROP POLICY IF EXISTS "Service role can insert payment info" ON payment_info;
+
+DROP POLICY IF EXISTS "Service role can update users" ON users;
+DROP POLICY IF EXISTS "Service role can update hotels" ON hotels;
+DROP POLICY IF EXISTS "Service role can update bookings" ON bookings;
+DROP POLICY IF EXISTS "Service role can update vapi logs" ON vapi_call_logs;
+DROP POLICY IF EXISTS "Service role can update payment info" ON payment_info;
 
 -- Basic RLS policies (adjust based on your authentication needs)
 CREATE POLICY "Users can view their own data" ON users FOR SELECT USING (true);
