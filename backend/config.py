@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Amadeus Configuration
     amadeus_api_key: str
     amadeus_api_secret: str
+    amadeus_base_url: Optional[str] = "https://api.amadeus.com/v1"
     
     # Supabase Configuration
     supabase_url: str
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
         case_sensitive = False
         
         @classmethod
