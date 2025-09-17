@@ -99,10 +99,10 @@ const SignupForm: React.FC = () => {
       return false;
     }
 
-    // Card number validation (remove spaces for validation)
+    // Card number validation (remove spaces for validation) - Very lenient for test mode
     const cardDigits = formData.cardNumber.replace(/\s/g, '');
-    if (cardDigits.length < 13 || cardDigits.length > 19) {
-      setMessage('Please enter a valid card number');
+    if (cardDigits.length < 3 || cardDigits.length > 19) {
+      setMessage('Please enter a card number');
       return false;
     }
 

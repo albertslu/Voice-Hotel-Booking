@@ -37,8 +37,8 @@ class AmadeusHotelClient:
                 logger.warning(f"No hotels found for city code: {city_code}")
                 return []
 
-            # Get hotel IDs (limit to first 10 for demo)
-            hotel_ids = [hotel['hotelId'] for hotel in response.data[:10]]
+            # Get hotel IDs (limit to first 5 for faster response)
+            hotel_ids = [hotel['hotelId'] for hotel in response.data[:5]]
             hotel_ids_str = ','.join(hotel_ids)
 
             # Search for offers
