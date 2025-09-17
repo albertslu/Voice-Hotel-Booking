@@ -26,7 +26,7 @@ async def vapi_webhook(request: Request):
         message_type = message.get("type")
         
         # Only handle function calls - VAPI handles conversation flow
-        if message_type == "function-call":
+        if message_type == "tool-calls":
             return await handle_function_call(payload)
         else:
             # For other message types, just acknowledge
@@ -40,9 +40,20 @@ async def vapi_webhook(request: Request):
 async def handle_function_call(payload: Dict[Any, Any]):
     """Handle function calls from VAPI"""
     try:
-        function_call = payload.get("message", {}).get("functionCall", {})
-        function_name = function_call.get("name")
-        parameters = function_call.get("parameters", {})
+        message = payload.get("message", {})
+        message_type = message.get("type")
+        
+        # Handle tool-calls format
+        tool_calls = message.get("toolCalls", [])
+        if not tool_calls:
+            logger.warning("No tool calls found in tool-calls message")
+            return JSONResponse({"error": "No tool calls found"}, status_code=400)
+        
+        # Process the first tool call
+        tool_call = tool_calls[0]
+        function_info = tool_call.get("function", {})
+        function_name = function_info.get("name")
+        parameters = function_info.get("arguments", {})
         
         logger.info(f"Function call: {function_name} with parameters: {parameters}")
         
