@@ -29,6 +29,15 @@ class DatabaseManager:
             logger.error(f"Error getting user by email: {e}")
             raise
 
+    async def get_user_by_phone(self, phone: str):
+        """Get user by phone number"""
+        try:
+            result = self.supabase.table("users").select("*").eq("phone", phone).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            logger.error(f"Error getting user by phone: {e}")
+            raise
+
     async def create_hotel(self, hotel_data: dict):
         """Create a new hotel in the database"""
         try:

@@ -49,7 +49,8 @@ async def handle_function_call(payload: Dict[Any, Any]):
         if function_name == "search_hotels":
             return await search_hotels_tool(parameters)
         elif function_name == "book_hotel":
-            return await book_hotel_tool(parameters)
+            # Pass the full payload to get call data (phone number)
+            return await book_hotel_tool(parameters, payload.get("call", {}))
         else:
             logger.warning(f"Unknown function call: {function_name}")
             return JSONResponse({
@@ -156,19 +157,18 @@ async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
             "error": str(e)
         }, status_code=500)
 
-async def book_hotel_tool(parameters: Dict[str, Any]) -> JSONResponse:
+async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
     """
     VAPI Tool: Book a hotel using stored user profile
     
     Expected parameters from VAPI:
     - offer_id: string (from search results)
     
-    Note: VAPI should collect user_email in conversation and pass it here
+    Note: User is identified by phone number from the VAPI call
     """
     try:
         # Extract required parameters
         offer_id = parameters.get("offer_id")
-        user_email = parameters.get("user_email")  # VAPI collects this in conversation
         
         # Validate required parameters
         if not offer_id:
@@ -176,20 +176,24 @@ async def book_hotel_tool(parameters: Dict[str, Any]) -> JSONResponse:
                 "result": "I need the hotel offer ID to complete the booking.",
                 "success": False
             }, status_code=400)
-            
-        # If no email provided, ask for it
-        if not user_email:
+        
+        # Get phone number from call data
+        caller_phone = None
+        if call_data:
+            caller_phone = call_data.get("customer", {}).get("number")
+        
+        if not caller_phone:
             return JSONResponse({
-                "result": "To complete your booking, I need your email address. What email did you use to sign up?",
+                "result": "I couldn't identify your phone number. Please make sure you're calling from the phone number you used to sign up.",
                 "success": False,
-                "action_needed": "collect_email"
+                "action_needed": "phone_identification_failed"
             }, status_code=400)
         
-        # Get user profile from database
-        user_profile = await db.get_user_by_email(user_email)
+        # Get user profile from database by phone
+        user_profile = await db.get_user_by_phone(caller_phone)
         if not user_profile:
             return JSONResponse({
-                "result": f"I couldn't find a profile for {user_email}. Please sign up at hotelbooking.buzz first, then call back to book.",
+                "result": f"I couldn't find a profile for phone number {caller_phone}. Please sign up at hotelbooking.buzz first, then call back to book.",
                 "success": False,
                 "redirect_to_signup": True
             })
