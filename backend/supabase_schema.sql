@@ -12,6 +12,19 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20),
     title VARCHAR(10) CHECK (title IN ('MR', 'MRS', 'MS')),
+    
+    -- Payment information (encrypted)
+    has_payment_method BOOLEAN DEFAULT FALSE,
+    card_vendor VARCHAR(10), -- VI, MC, AX
+    card_last_four VARCHAR(4),
+    card_expiry VARCHAR(7), -- YYYY-MM format
+    card_holder_name VARCHAR(255),
+    card_number_encrypted TEXT, -- Encrypted full card number
+    
+    -- Profile settings
+    is_active BOOLEAN DEFAULT TRUE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

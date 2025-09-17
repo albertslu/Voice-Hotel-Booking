@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 import logging
-from typing import Dict, Any
-from models import VAPICall, VoiceBookingRequest, Guest, Payment, HotelOrder, HotelOrderData, TravelAgent, RoomAssociation, GuestReference
+from typing import Dict, Any, Optional
+from models import Guest, Payment, HotelOrder, HotelOrderData, TravelAgent, RoomAssociation, GuestReference
 from amadeus_client import amadeus_client
 from database import db
 from datetime import datetime, date
@@ -12,67 +12,32 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhook", tags=["VAPI Webhooks"])
 
-# Store conversation state (in production, use Redis or database)
-conversation_state = {}
-
 @router.post("/vapi")
 async def vapi_webhook(request: Request):
     """
-    Main VAPI webhook endpoint for handling voice interactions
+    Main VAPI webhook endpoint for handling function calls
     """
     try:
         payload = await request.json()
         logger.info(f"Received VAPI webhook: {payload}")
         
-        # Extract call information
-        call_id = payload.get("call", {}).get("id")
-        message_type = payload.get("message", {}).get("type")
+        # Extract message information
+        message = payload.get("message", {})
+        message_type = message.get("type")
         
-        if not call_id:
-            logger.error("No call ID found in webhook payload")
-            return JSONResponse({"error": "Invalid payload"}, status_code=400)
-        
-        # Handle different message types
-        if message_type == "conversation-update":
-            return await handle_conversation_update(call_id, payload)
-        elif message_type == "function-call":
-            return await handle_function_call(call_id, payload)
-        elif message_type == "end-of-call-report":
-            return await handle_end_of_call(call_id, payload)
+        # Only handle function calls - VAPI handles conversation flow
+        if message_type == "function-call":
+            return await handle_function_call(payload)
         else:
-            logger.info(f"Unhandled message type: {message_type}")
+            # For other message types, just acknowledge
+            logger.info(f"Received message type: {message_type}")
             return JSONResponse({"status": "received"})
             
     except Exception as e:
         logger.error(f"Error processing VAPI webhook: {e}")
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
-async def handle_conversation_update(call_id: str, payload: Dict[Any, Any]):
-    """Handle conversation updates from VAPI"""
-    try:
-        transcript = payload.get("message", {}).get("transcript", "")
-        
-        # Initialize conversation state if not exists
-        if call_id not in conversation_state:
-            conversation_state[call_id] = {
-                "step": "greeting",
-                "booking_data": {},
-                "transcript": []
-            }
-        
-        # Add to transcript
-        conversation_state[call_id]["transcript"].append(transcript)
-        
-        # Analyze transcript and determine next action
-        response = await analyze_and_respond(call_id, transcript)
-        
-        return JSONResponse(response)
-        
-    except Exception as e:
-        logger.error(f"Error handling conversation update: {e}")
-        return JSONResponse({"error": "Failed to process conversation"}, status_code=500)
-
-async def handle_function_call(call_id: str, payload: Dict[Any, Any]):
+async def handle_function_call(payload: Dict[Any, Any]):
     """Handle function calls from VAPI"""
     try:
         function_call = payload.get("message", {}).get("functionCall", {})
@@ -82,193 +47,234 @@ async def handle_function_call(call_id: str, payload: Dict[Any, Any]):
         logger.info(f"Function call: {function_name} with parameters: {parameters}")
         
         if function_name == "search_hotels":
-            return await search_hotels_function(call_id, parameters)
+            return await search_hotels_tool(parameters)
         elif function_name == "book_hotel":
-            return await book_hotel_function(call_id, parameters)
+            return await book_hotel_tool(parameters)
         else:
             logger.warning(f"Unknown function call: {function_name}")
-            return JSONResponse({"error": f"Unknown function: {function_name}"})
+            return JSONResponse({
+                "error": f"Unknown function: {function_name}"
+            }, status_code=400)
             
     except Exception as e:
         logger.error(f"Error handling function call: {e}")
-        return JSONResponse({"error": "Failed to process function call"}, status_code=500)
+        return JSONResponse({
+            "error": "Failed to process function call",
+            "details": str(e)
+        }, status_code=500)
 
-async def handle_end_of_call(call_id: str, payload: Dict[Any, Any]):
-    """Handle end of call cleanup"""
-    try:
-        # Clean up conversation state
-        if call_id in conversation_state:
-            logger.info(f"Cleaning up conversation state for call: {call_id}")
-            del conversation_state[call_id]
-        
-        return JSONResponse({"status": "call_ended"})
-        
-    except Exception as e:
-        logger.error(f"Error handling end of call: {e}")
-        return JSONResponse({"error": "Failed to process end of call"}, status_code=500)
-
-async def analyze_and_respond(call_id: str, transcript: str) -> Dict[str, Any]:
+async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
     """
-    Analyze user input and determine appropriate response
+    VAPI Tool: Search for hotels using Amadeus API
+    
+    Expected parameters from VAPI:
+    - destination: string (city name)
+    - check_in_date: string (YYYY-MM-DD)
+    - check_out_date: string (YYYY-MM-DD) 
+    - guests: number (number of adults)
     """
-    state = conversation_state[call_id]
-    current_step = state["step"]
-    booking_data = state["booking_data"]
-    
-    # Simple keyword-based analysis (in production, use NLP/LLM)
-    transcript_lower = transcript.lower()
-    
-    if current_step == "greeting":
-        if any(word in transcript_lower for word in ["hotel", "book", "reservation", "room"]):
-            state["step"] = "get_destination"
-            return {
-                "message": {
-                    "type": "assistant-message",
-                    "content": "I'd be happy to help you book a hotel! Where would you like to stay?"
-                }
-            }
-    
-    elif current_step == "get_destination":
-        # Extract destination (simple approach)
-        booking_data["destination"] = transcript.strip()
-        state["step"] = "get_dates"
-        return {
-            "message": {
-                "type": "assistant-message", 
-                "content": f"Great! You want to stay in {booking_data['destination']}. When would you like to check in? Please provide the date."
-            }
-        }
-    
-    elif current_step == "get_dates":
-        # Extract check-in date (simple approach)
-        booking_data["check_in_date"] = transcript.strip()
-        state["step"] = "get_checkout_date"
-        return {
-            "message": {
-                "type": "assistant-message",
-                "content": "And when would you like to check out?"
-            }
-        }
-    
-    elif current_step == "get_checkout_date":
-        booking_data["check_out_date"] = transcript.strip()
-        state["step"] = "get_guests"
-        return {
-            "message": {
-                "type": "assistant-message",
-                "content": "How many guests will be staying?"
-            }
-        }
-    
-    elif current_step == "get_guests":
-        booking_data["guests"] = transcript.strip()
-        state["step"] = "search_hotels"
-        
-        # Trigger hotel search
-        return {
-            "message": {
-                "type": "function-call",
-                "functionCall": {
-                    "name": "search_hotels",
-                    "parameters": booking_data
-                }
-            }
-        }
-    
-    # Default response
-    return {
-        "message": {
-            "type": "assistant-message",
-            "content": "I'm here to help you book a hotel. Could you please tell me where you'd like to stay?"
-        }
-    }
-
-async def search_hotels_function(call_id: str, parameters: Dict[str, Any]) -> JSONResponse:
-    """Search for hotels using Amadeus API"""
     try:
-        destination = parameters.get("destination", "")
-        check_in = parameters.get("check_in_date", "")
-        check_out = parameters.get("check_out_date", "")
+        # Extract parameters
+        destination = parameters.get("destination")
+        check_in_date = parameters.get("check_in_date")
+        check_out_date = parameters.get("check_out_date")
         guests = int(parameters.get("guests", 1))
+        
+        # Validate required parameters
+        if not all([destination, check_in_date, check_out_date]):
+            return JSONResponse({
+                "error": "Missing required parameters",
+                "required": ["destination", "check_in_date", "check_out_date"]
+            }, status_code=400)
         
         # Get city code from destination
         city_code = await amadeus_client.get_city_code(destination)
         if not city_code:
             return JSONResponse({
-                "message": {
-                    "type": "assistant-message",
-                    "content": f"I couldn't find hotels for {destination}. Could you try a different city?"
-                }
+                "result": f"Could not find city code for {destination}. Please try a different city name.",
+                "success": False
             })
         
         # Search hotels
         hotels = await amadeus_client.search_hotels(
             city_code=city_code,
-            check_in_date=check_in,
-            check_out_date=check_out,
+            check_in_date=check_in_date,
+            check_out_date=check_out_date,
             adults=guests
         )
         
         if not hotels:
             return JSONResponse({
-                "message": {
-                    "type": "assistant-message",
-                    "content": f"I couldn't find any available hotels in {destination} for those dates. Would you like to try different dates?"
-                }
+                "result": f"No hotels found in {destination} for {check_in_date} to {check_out_date}. Please try different dates.",
+                "success": False
             })
         
-        # Store search results in conversation state
-        conversation_state[call_id]["search_results"] = hotels
-        conversation_state[call_id]["step"] = "present_options"
-        
-        # Present top 3 options
-        hotel_options = []
-        for i, hotel in enumerate(hotels[:3]):
-            hotel_info = hotel.get("hotel", {})
-            offers = hotel.get("offers", [])
+        # Format results for voice response
+        hotel_list = []
+        for i, hotel_offer in enumerate(hotels[:3]):  # Top 3 results
+            hotel = hotel_offer.get("hotel", {})
+            offers = hotel_offer.get("offers", [])
+            
             if offers:
-                price = offers[0].get("price", {})
-                hotel_options.append(f"{i+1}. {hotel_info.get('name', 'Unknown Hotel')} - ${price.get('total', 'N/A')} {price.get('currency', '')}")
+                offer = offers[0]
+                price = offer.get("price", {})
+                room = offer.get("room", {})
+                
+                hotel_info = {
+                    "index": i + 1,
+                    "name": hotel.get("name", "Unknown Hotel"),
+                    "price": f"${price.get('total', 'N/A')} {price.get('currency', '')}",
+                    "room_type": room.get("type", "Standard Room"),
+                    "offer_id": offer.get("id")
+                }
+                hotel_list.append(hotel_info)
         
-        options_text = "\n".join(hotel_options)
+        # Create voice-friendly response
+        hotel_descriptions = []
+        for hotel in hotel_list:
+            hotel_descriptions.append(f"{hotel['index']}. {hotel['name']} - {hotel['price']} for a {hotel['room_type']}")
+        
+        result_text = f"I found {len(hotel_list)} hotels in {destination}:\n" + "\n".join(hotel_descriptions)
         
         return JSONResponse({
-            "message": {
-                "type": "assistant-message",
-                "content": f"I found some great options for you:\n{options_text}\n\nWhich hotel would you like to book? Just say the number."
+            "result": result_text,
+            "success": True,
+            "hotels": hotel_list,
+            "search_params": {
+                "destination": destination,
+                "check_in": check_in_date,
+                "check_out": check_out_date,
+                "guests": guests
             }
         })
         
     except Exception as e:
-        logger.error(f"Error in search_hotels_function: {e}")
+        logger.error(f"Error in search_hotels_tool: {e}")
         return JSONResponse({
-            "message": {
-                "type": "assistant-message",
-                "content": "I'm having trouble searching for hotels right now. Could you please try again?"
-            }
-        })
+            "result": "I'm having trouble searching for hotels right now. Please try again.",
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
 
-async def book_hotel_function(call_id: str, parameters: Dict[str, Any]) -> JSONResponse:
-    """Book a hotel using Amadeus API"""
+async def book_hotel_tool(parameters: Dict[str, Any]) -> JSONResponse:
+    """
+    VAPI Tool: Book a hotel using stored user profile
+    
+    Expected parameters from VAPI:
+    - offer_id: string (from search results)
+    
+    Note: VAPI should collect user_email in conversation and pass it here
+    """
     try:
-        # This would be called after user provides personal details and payment info
-        # For demo purposes, we'll use placeholder data
+        # Extract required parameters
+        offer_id = parameters.get("offer_id")
+        user_email = parameters.get("user_email")  # VAPI collects this in conversation
         
-        return JSONResponse({
-            "message": {
-                "type": "assistant-message",
-                "content": "I would need your personal details and payment information to complete the booking. For this demo, I'll simulate a successful booking. Your reservation has been confirmed! You'll receive a confirmation email shortly."
+        # Validate required parameters
+        if not offer_id:
+            return JSONResponse({
+                "result": "I need the hotel offer ID to complete the booking.",
+                "success": False
+            }, status_code=400)
+            
+        # If no email provided, ask for it
+        if not user_email:
+            return JSONResponse({
+                "result": "To complete your booking, I need your email address. What email did you use to sign up?",
+                "success": False,
+                "action_needed": "collect_email"
+            }, status_code=400)
+        
+        # Get user profile from database
+        user_profile = await db.get_user_by_email(user_email)
+        if not user_profile:
+            return JSONResponse({
+                "result": f"I couldn't find a profile for {user_email}. Please sign up at hotelbooking.buzz first, then call back to book.",
+                "success": False,
+                "redirect_to_signup": True
+            })
+        
+        # Check if user has payment method on file
+        if not user_profile.get("has_payment_method"):
+            return JSONResponse({
+                "result": "You need to add a payment method to your profile first. Please visit our website to add your card details.",
+                "success": False,
+                "redirect_to_payment": True
+            })
+        
+        # Create hotel order using stored profile data
+        hotel_order = HotelOrder(
+            data=HotelOrderData(
+                guests=[
+                    Guest(
+                        tid=1,
+                        title=user_profile.get("title", "MR"),
+                        firstName=user_profile["first_name"],
+                        lastName=user_profile["last_name"],
+                        phone=user_profile["phone"],
+                        email=user_profile["email"]
+                    )
+                ],
+                travelAgent=TravelAgent(contact={"email": user_profile["email"]}),
+                roomAssociations=[
+                    RoomAssociation(
+                        guestReferences=[GuestReference(guestReference="1")],
+                        hotelOfferId=offer_id
+                    )
+                ],
+                payment=Payment(
+                    method="CREDIT_CARD",
+                    paymentCard={
+                        "paymentCardInfo": {
+                            "vendorCode": user_profile.get("card_vendor", "VI"),
+                            "cardNumber": user_profile["card_number"],  # Encrypted in DB
+                            "expiryDate": user_profile["card_expiry"],
+                            "holderName": user_profile["card_holder_name"]
+                        }
+                    }
+                )
+            )
+        )
+        
+        # Create booking via Amadeus
+        booking_result = await amadeus_client.create_hotel_booking(hotel_order)
+        
+        if booking_result:
+            # Store booking in database
+            booking_data = {
+                "user_id": user_profile["id"],
+                "amadeus_order_id": booking_result.get("id"),
+                "offer_id": offer_id,
+                "booking_status": "CONFIRMED",
+                "price": 0,  # Extract from offer details
+                "currency": "USD"
             }
-        })
+            
+            # Save to Supabase
+            booking_record = await db.create_booking(booking_data)
+            
+            confirmation_number = booking_result.get("associatedRecords", [{}])[0].get("reference", "N/A")
+            
+            return JSONResponse({
+                "result": f"Perfect! Your hotel is booked. Confirmation number: {confirmation_number}. I've sent the details to {user_email}.",
+                "success": True,
+                "confirmation_number": confirmation_number,
+                "booking_id": booking_result.get("id"),
+                "user_name": user_profile["first_name"]
+            })
+        else:
+            return JSONResponse({
+                "result": "Sorry, the booking failed. This might be due to the room no longer being available or a payment issue. Please try a different hotel.",
+                "success": False
+            }, status_code=400)
         
     except Exception as e:
-        logger.error(f"Error in book_hotel_function: {e}")
+        logger.error(f"Error in book_hotel_tool: {e}")
         return JSONResponse({
-            "message": {
-                "type": "assistant-message",
-                "content": "I'm having trouble completing your booking right now. Please try again or contact our support team."
-            }
-        })
+            "result": "I'm having trouble completing your booking right now. Please try again in a moment.",
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
 
 # Additional endpoints for testing
 @router.get("/test")

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import logging
 from config import settings
 from vapi import router as vapi_router
+from users import router as users_router
 
 # Load environment variables
 load_dotenv()
@@ -32,6 +33,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(vapi_router)
+app.include_router(users_router)
 
 @app.get("/")
 async def root():
