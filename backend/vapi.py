@@ -260,7 +260,7 @@ async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] 
             confirmation_number = booking_result.get("associatedRecords", [{}])[0].get("reference", "N/A")
             
             return JSONResponse({
-                "result": f"Perfect! Your hotel is booked. Confirmation number: {confirmation_number}. I've sent the details to {user_email}.",
+                "result": f"Perfect! Your hotel is booked. Confirmation number: {confirmation_number}. I've sent the details to {user_profile['email']}.",
                 "success": True,
                 "confirmation_number": confirmation_number,
                 "booking_id": booking_result.get("id"),
