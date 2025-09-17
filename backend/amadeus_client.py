@@ -41,7 +41,7 @@ class AmadeusHotelClient:
             hotel_ids_str = ','.join(hotel_ids)
 
             # Search for offers
-            offers_response = self.amadeus.shopping.hotel_offers.get(
+            offers_response = self.amadeus.shopping.hotel_offers_search.get(
                 hotelIds=hotel_ids_str,
                 checkInDate=check_in_date,
                 checkOutDate=check_out_date,
