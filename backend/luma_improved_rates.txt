@@ -1,0 +1,323 @@
+HOTEL RATES EXPORT
+================================================================================
+Hotel: LUMA Hotel San Francisco
+Hotel Code: 35419
+Check-in: 2025-11-11
+Check-out: 2025-11-13
+Adults: 2
+Rooms: 1
+Currency: USD
+Total Offers: 22
+Export Date: 2025-09-22 14:20:13
+Source: Direct LUMA Hotels Booking Page
+
+ROOM OFFERS
+================================================================================
+
+OFFER #1
+----------------------------------------
+Offer ID: DIRECT_001
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $450
+Price Per Night: $450
+Refundable: Unknown
+Description: 6  Offers From $450Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #2
+----------------------------------------
+Offer ID: DIRECT_002
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $450
+Price Per Night: $450
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #3
+----------------------------------------
+Offer ID: DIRECT_003
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $459
+Price Per Night: $459
+Refundable: Unknown
+Description: 6  Offers From $459Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #4
+----------------------------------------
+Offer ID: DIRECT_004
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $459
+Price Per Night: $459
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #5
+----------------------------------------
+Offer ID: DIRECT_005
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $474
+Price Per Night: $474
+Refundable: Unknown
+Description: 6  Offers From $474Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #6
+----------------------------------------
+Offer ID: DIRECT_006
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $474
+Price Per Night: $474
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #7
+----------------------------------------
+Offer ID: DIRECT_007
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $478
+Price Per Night: $478
+Refundable: Unknown
+Description: 6  Offers From $478Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #8
+----------------------------------------
+Offer ID: DIRECT_008
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $478
+Price Per Night: $478
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #9
+----------------------------------------
+Offer ID: DIRECT_009
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $497
+Price Per Night: $497
+Refundable: Unknown
+Description: 6  Offers From $497Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #10
+----------------------------------------
+Offer ID: DIRECT_010
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $497
+Price Per Night: $497
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #11
+----------------------------------------
+Offer ID: DIRECT_011
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $525
+Price Per Night: $525
+Refundable: Unknown
+Description: 6  Offers From $525Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #12
+----------------------------------------
+Offer ID: DIRECT_012
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $525
+Price Per Night: $525
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #13
+----------------------------------------
+Offer ID: DIRECT_013
+Room Type: SUITE
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $525
+Price Per Night: $525
+Refundable: Unknown
+Description: ZoomPremier Corner Double KingLuma Rooms SetupPremier Room ! KingRoom AmenitiesLuma Room _10RobeSlippersRoom AmenitiesView from HotelPremier Two King CornerBathroom Suitebathroom amenitiesHair DryerPr
+Raw Text: ZoomPremier Corner Double KingLuma Rooms SetupPremier Room ! KingRoom AmenitiesLuma Room _10RobeSlip
+Source: dom_extraction_[class*="room"]
+
+OFFER #14
+----------------------------------------
+Offer ID: DIRECT_014
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $732
+Price Per Night: $732
+Refundable: Unknown
+Description: 4  Offers From $732Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #15
+----------------------------------------
+Offer ID: DIRECT_015
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $732
+Price Per Night: $732
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #16
+----------------------------------------
+Offer ID: DIRECT_016
+Room Type: SUITE
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $732
+Price Per Night: $732
+Refundable: Unknown
+Description: ZoomPremier Corner SuitePremier Corner SuitePremier Corner SuitePremier Corner SuiteRobeSlippersRoom AmenitiesPremier King Washroombathroom amenitiesHair DryerVirtual TourPremier Corner King SuiteADA
+Raw Text: ZoomPremier Corner SuitePremier Corner SuitePremier Corner SuitePremier Corner SuiteRobeSlippersRoom
+Source: dom_extraction_[class*="room"]
+
+OFFER #17
+----------------------------------------
+Offer ID: DIRECT_017
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $779
+Price Per Night: $779
+Refundable: Unknown
+Description: 4  Offers From $779Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #18
+----------------------------------------
+Offer ID: DIRECT_018
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $779
+Price Per Night: $779
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #19
+----------------------------------------
+Offer ID: DIRECT_019
+Room Type: SUITE
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $779
+Price Per Night: $779
+Refundable: Unknown
+Description: ZoomTerrace Suitebathroom amenitiesTerrace SuiteTerrace SuiteBathroom SuiteTerraceVirtual TourPremier Corner King Suite with BalconyADA HearingOur LUMA Suites offer breathtaking views of San Francisco
+Raw Text: ZoomTerrace Suitebathroom amenitiesTerrace SuiteTerrace SuiteBathroom SuiteTerraceVirtual TourPremie
+Source: dom_extraction_[class*="room"]
+
+OFFER #20
+----------------------------------------
+Offer ID: DIRECT_020
+Room Type: UNKNOWN_ROOM
+Room Code: DIRECT
+Bed Configuration: Unknown
+Rate Code: DIRECT
+Total Price: $1672
+Price Per Night: $1672
+Refundable: Unknown
+Description: 3  Offers From $1672Per NightSelect Room
+Source: dom_extraction_[class*="rate"]
+
+OFFER #21
+----------------------------------------
+Offer ID: DIRECT_021
+Room Type: DELUXE_ROOM
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $1672
+Price Per Night: $1672
+Refundable: Unknown
+Amenities: Spa
+Description: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms SetupRoom AmenitiesShowerBathroom Suitebathroom amenitiesHair DryerVirtual TourDeluxe KingEnjoy a true l
+Raw Text: Refine ResultsSort By:Price Low to HighSelect your RoomZoomKing RoomDeluxe Side View Luma Rooms Setu
+Source: dom_extraction_[class*="room"]
+
+OFFER #22
+----------------------------------------
+Offer ID: DIRECT_022
+Room Type: SUITE
+Room Code: DIRECT
+Bed Configuration: 1 King
+Rate Code: DIRECT
+Total Price: $1672
+Price Per Night: $1672
+Refundable: Unknown
+Description: ZoomPremier Two Bedroom SuitePremier Two Bedroom SuitePremier Two Bedroom SuitePremier Two Bedroom Suitebathroom amenitiesVirtual Tour Premier Two Bedroom SuiteOur LUMA Suites offer breathtaking views
+Raw Text: ZoomPremier Two Bedroom SuitePremier Two Bedroom SuitePremier Two Bedroom SuitePremier Two Bedroom S
+Source: dom_extraction_[class*="room"]
