@@ -11,11 +11,21 @@ import os
 import json
 import argparse
 from datetime import datetime
+from pathlib import Path
 
-# Add the backend directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add the backend directory to Python path for flexible imports
+backend_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(backend_dir))
 
-from amadeus_hotel_client import AmadeusHotelClient
+# Try flexible imports
+try:
+    from app.services.amadeus_service import AmadeusHotelClient
+except ImportError:
+    # Fallback for different project structures
+    try:
+        from services.amadeus_service import AmadeusHotelClient
+    except ImportError:
+        from amadeus_service import AmadeusHotelClient
 
 async def export_hotel_rates(
     hotel_id: str, 

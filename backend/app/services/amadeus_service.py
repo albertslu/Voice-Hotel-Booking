@@ -1,8 +1,9 @@
 import httpx
 import asyncio
-from typing import List, Dict, Optional
-import logging
+import time
 import os
+import logging
+from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +23,29 @@ class AmadeusHotelClient:
             self.client_id = client_id
             self.client_secret = client_secret
         else:
+            # Try multiple import paths for flexibility
+            self.client_id = None
+            self.client_secret = None
+            
+            # Try app.core.config first (new structure)
             try:
-                from config import settings
+                from app.core.config import settings
                 self.client_id = settings.amadeus_api_key
                 self.client_secret = settings.amadeus_api_secret
-            except ImportError:
-                # Fallback to environment variables
+            except (ImportError, AttributeError):
+                pass
+            
+            # Try config (old structure) as fallback
+            if not self.client_id:
+                try:
+                    from config import settings
+                    self.client_id = settings.amadeus_api_key
+                    self.client_secret = settings.amadeus_api_secret
+                except (ImportError, AttributeError):
+                    pass
+            
+            # Final fallback to environment variables
+            if not self.client_id:
                 self.client_id = os.getenv('AMADEUS_API_KEY')
                 self.client_secret = os.getenv('AMADEUS_API_SECRET')
         
@@ -39,8 +57,6 @@ class AmadeusHotelClient:
     
     async def _get_access_token(self) -> str:
         """Get or refresh access token"""
-        import time
-        
         # Check if we have a valid token
         if self.access_token and self.token_expires_at and time.time() < self.token_expires_at:
             return self.access_token
@@ -205,6 +221,52 @@ class AmadeusHotelClient:
             formatted_offers.append(formatted_offer)
         
         return formatted_offers
+    
+    async def search_hotels(self, city_code: str, check_in_date: str, check_out_date: str, adults: int = 1) -> List[Dict]:
+        """
+        Search for hotels by city code and get offers (compatibility method for old API)
+        
+        Args:
+            city_code: IATA city code (e.g., 'SFO', 'NYC', 'LON')
+            check_in_date: Check-in date in YYYY-MM-DD format
+            check_out_date: Check-out date in YYYY-MM-DD format
+            adults: Number of adults
+        
+        Returns:
+            List of formatted hotel offers
+        """
+        try:
+            # First, get hotels by city
+            hotels = await self.search_hotels_by_location(city_code)
+            
+            if not hotels:
+                logger.warning(f"No hotels found for city code: {city_code}")
+                return []
+
+            # Get hotel IDs (limit to first 5 for faster response)
+            hotel_ids = [hotel['hotelId'] for hotel in hotels[:5]]
+            
+            all_offers = []
+            for hotel_id in hotel_ids:
+                # Get offers for each hotel
+                offers_data = await self.get_hotel_offers(
+                    hotel_id=hotel_id,
+                    check_in=check_in_date,
+                    check_out=check_out_date,
+                    adults=adults,
+                    rooms=1,
+                    best_rate_only=True  # Get best rate for faster response
+                )
+                
+                # Format offers
+                formatted_offers = self.format_hotel_offers(offers_data)
+                all_offers.extend(formatted_offers)
+            
+            return all_offers
+            
+        except Exception as e:
+            logger.error(f"Error searching hotels: {str(e)}")
+            return []
 
 # Example usage:
 # client = AmadeusHotelClient()

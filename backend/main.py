@@ -2,9 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import logging
-from config import settings
-from vapi import router as vapi_router
-from users import router as users_router
+from app.core import settings
+from app.api import vapi_router, users_router
 
 # Load environment variables
 load_dotenv()

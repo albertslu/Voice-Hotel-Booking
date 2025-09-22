@@ -1,15 +1,25 @@
 from supabase import create_client, Client
-from config import settings
+from .config import settings
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Initialize Supabase client
-supabase: Client = create_client(settings.supabase_url, settings.supabase_anon_key)
-
 class DatabaseManager:
     def __init__(self):
-        self.supabase = supabase
+        self._supabase: Optional[Client] = None
+    
+    @property
+    def supabase(self) -> Client:
+        """Lazy-load Supabase client"""
+        if self._supabase is None:
+            try:
+                self._supabase = create_client(settings.supabase_url, settings.supabase_anon_key)
+                logger.info("Supabase client initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Supabase client: {e}")
+                raise
+        return self._supabase
 
     async def create_user(self, user_data: dict):
         """Create a new user in the database"""

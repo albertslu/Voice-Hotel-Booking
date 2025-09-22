@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 import logging
 from typing import Dict, Any, Optional
-from models import Guest, Payment, HotelOrder, HotelOrderData, TravelAgent, RoomAssociation, GuestReference
-from amadeus_client import amadeus_client
-from database import db
+from app.models.hotel import Guest, Payment, HotelOrder, HotelOrderData, TravelAgent, RoomAssociation, GuestReference
+from app.services import AmadeusHotelClient
+from app.core import db
 from datetime import datetime, date
 import json
 

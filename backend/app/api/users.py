@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 import logging
 from typing import Dict, Any, Optional
-from models import UserCreate
-from database import db
+from app.models.hotel import UserCreate
+from app.core import db
 from datetime import datetime
 import hashlib
 import os
