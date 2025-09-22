@@ -52,6 +52,158 @@ class LumaHotelScraper:
         
         return f"{self.base_url}?{urlencode(params)}"
     
+    async def interact_with_page(self, page):
+        """Comprehensive page interaction to load all rates"""
+        logger.info("Starting comprehensive page interaction...")
+        
+        try:
+            # 1. Scroll through the page to trigger lazy loading
+            logger.info("Scrolling to load dynamic content...")
+            for i in range(3):  # Reduced from 5 to 3
+                # Scroll down
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await page.wait_for_timeout(800)  # Reduced wait time
+                
+                # Scroll up
+                await page.evaluate("window.scrollTo(0, 0)")
+                await page.wait_for_timeout(500)
+                
+                # Scroll to middle
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+                await page.wait_for_timeout(500)
+            
+            # 2. Look for and click "Show more" or "Load more" buttons (but avoid accessibility buttons)
+            show_more_selectors = [
+                'button[class*="more"]',
+                'button[class*="load"]', 
+                'button[class*="show"]',
+                'a[class*="more"]',
+                'div[class*="more"]',
+                '[data-testid*="more"]',
+                '[data-testid*="load"]'
+            ]
+            
+            clicked_buttons = set()  # Track clicked buttons to avoid loops
+            
+            for selector in show_more_selectors:
+                try:
+                    elements = await page.query_selector_all(selector)
+                    for element in elements:
+                        try:
+                            text = await element.text_content()
+                            if text and len(text) > 100:  # Skip very long text (likely descriptions)
+                                continue
+                            if text and 'accessible' in text.lower():  # Skip accessibility buttons
+                                continue
+                            if text and any(word in text.lower() for word in ['more rates', 'show more', 'load more', 'view all']):
+                                button_id = f"{selector}_{text[:20]}"
+                                if button_id not in clicked_buttons:
+                                    logger.info(f"Clicking button: {text[:50]}")
+                                    await element.click()
+                                    clicked_buttons.add(button_id)
+                                    await page.wait_for_timeout(1500)
+                        except:
+                            continue
+                except:
+                    continue
+            
+            # 3. Look for room type filters/tabs and click them
+            filter_selectors = [
+                'button[class*="filter"]',
+                'button[class*="tab"]',
+                'div[class*="filter"]',
+                'div[class*="tab"]',
+                '[role="tab"]',
+                '[data-testid*="filter"]',
+                '[data-testid*="tab"]'
+            ]
+            
+            for selector in filter_selectors:
+                try:
+                    elements = await page.query_selector_all(selector)
+                    for element in elements:
+                        try:
+                            await element.click()
+                            await page.wait_for_timeout(1500)
+                        except:
+                            continue
+                except:
+                    continue
+            
+            # 4. Look for expandable sections or accordions
+            expandable_selectors = [
+                'button[class*="expand"]',
+                'button[class*="collapse"]',
+                'div[class*="expand"]',
+                'div[class*="accordion"]',
+                '[data-testid*="expand"]',
+                '[aria-expanded="false"]'
+            ]
+            
+            for selector in expandable_selectors:
+                try:
+                    elements = await page.query_selector_all(selector)
+                    for element in elements:
+                        try:
+                            await element.click()
+                            await page.wait_for_timeout(1000)
+                        except:
+                            continue
+                except:
+                    continue
+            
+            # 5. Try to trigger any hover effects that might reveal more rates
+            logger.info("Triggering hover effects...")
+            hover_selectors = [
+                '.room',
+                '.rate',
+                '.offer',
+                '[class*="room"]',
+                '[class*="rate"]',
+                '[class*="offer"]'
+            ]
+            
+            for selector in hover_selectors:
+                try:
+                    elements = await page.query_selector_all(selector)
+                    for i, element in enumerate(elements[:10]):  # Limit to first 10 to avoid too much delay
+                        try:
+                            await element.hover()
+                            await page.wait_for_timeout(200)
+                        except:
+                            continue
+                except:
+                    continue
+            
+            # 6. Final comprehensive scroll to ensure everything is loaded
+            logger.info("Final scroll to ensure all content is loaded...")
+            await page.evaluate("""
+                () => {
+                    return new Promise((resolve) => {
+                        let totalHeight = 0;
+                        let distance = 100;
+                        let timer = setInterval(() => {
+                            let scrollHeight = document.body.scrollHeight;
+                            window.scrollBy(0, distance);
+                            totalHeight += distance;
+                            
+                            if(totalHeight >= scrollHeight){
+                                clearInterval(timer);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                }
+            """)
+            
+            # 7. Wait for any final dynamic content to load
+            await page.wait_for_timeout(3000)
+            
+            logger.info("Page interaction completed")
+            
+        except Exception as e:
+            logger.warning(f"Error during page interaction: {e}")
+    
     async def scrape_rates(self, check_in: str, check_out: str, adults: int = 2, rooms: int = 1, currency: str = "USD"):
         """Scrape hotel rates from LUMA booking page"""
         url = self.build_booking_url(check_in, check_out, adults, rooms, currency)
@@ -66,43 +218,22 @@ class LumaHotelScraper:
                 # Navigate to booking page
                 await page.goto(url, wait_until='networkidle', timeout=30000)
                 
-                # Wait for rates to load
-                logger.info("Waiting for rates to load...")
-                await page.wait_for_timeout(3000)  # Initial wait
+                # Wait for initial page load
+                logger.info("Waiting for page to load...")
+                await page.wait_for_timeout(3000)
                 
-                # Try to wait for specific LUMA booking elements
+                # Wait for booking interface to load
                 try:
-                    # Wait for the booking interface to load
-                    await page.wait_for_selector('div, section, article', timeout=15000)
-                    logger.info("Page elements loaded")
-                    
-                    # Additional wait for dynamic content
-                    await page.wait_for_timeout(5000)
-                    
-                    # Try to find rate-specific elements
-                    rate_selectors = [
-                        '[data-testid*="rate"]',
-                        '[data-testid*="room"]', 
-                        '[data-testid*="price"]',
-                        '.rate', '.room', '.price',
-                        '[class*="rate"]', '[class*="room"]', '[class*="price"]',
-                        'button[class*="select"]', 'div[class*="offer"]'
-                    ]
-                    
-                    for selector in rate_selectors:
-                        try:
-                            await page.wait_for_selector(selector, timeout=2000)
-                            logger.info(f"Found elements with selector: {selector}")
-                            break
-                        except:
-                            continue
-                            
-                except Exception as e:
-                    logger.warning(f"Timeout waiting for elements: {e}")
+                    await page.wait_for_selector('body', timeout=15000)
+                    logger.info("Page body loaded")
+                except:
+                    logger.warning("Page body not found")
                 
-                # Scroll to load more content
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await page.wait_for_timeout(2000)
+                # Perform comprehensive page interaction to load all rates
+                await self.interact_with_page(page)
+                
+                # Final wait for all content to load
+                await page.wait_for_timeout(3000)
                 
                 # Get page content
                 content = await page.content()
@@ -204,25 +335,37 @@ class LumaHotelScraper:
             all_text = await page.evaluate("document.body.innerText")
             logger.info(f"Page text length: {len(all_text)} characters")
             
-            # Enhanced selectors for hotel booking sites
+            # Comprehensive selectors for hotel booking sites
             selectors = [
-                # Generic booking selectors
+                # Data attribute selectors
                 '[data-testid*="rate"]', '[data-testid*="room"]', '[data-testid*="price"]',
-                '[data-testid*="offer"]', '[data-testid*="booking"]',
+                '[data-testid*="offer"]', '[data-testid*="booking"]', '[data-testid*="hotel"]',
+                '[data-cy*="rate"]', '[data-cy*="room"]', '[data-cy*="price"]',
                 
-                # Class-based selectors
+                # Class-based selectors - specific
                 '.rate-card', '.room-rate', '.room-option', '.booking-option', '.price-card',
-                '.room-card', '.offer-card', '.rate-option', '.booking-card',
+                '.room-card', '.offer-card', '.rate-option', '.booking-card', '.hotel-rate',
+                '.price-option', '.room-type', '.rate-type', '.offer-type',
                 
-                # Generic class patterns
+                # Class-based selectors - patterns
                 '[class*="rate"]', '[class*="room"]', '[class*="price"]', '[class*="offer"]',
-                '[class*="booking"]', '[class*="select"]', '[class*="choose"]',
+                '[class*="booking"]', '[class*="select"]', '[class*="choose"]', '[class*="hotel"]',
+                '[class*="option"]', '[class*="card"]', '[class*="item"]', '[class*="tile"]',
                 
-                # Button and interactive elements
-                'button', 'a[href*="book"]', 'div[role="button"]',
+                # Interactive elements
+                'button', 'a[href*="book"]', 'div[role="button"]', 'span[role="button"]',
+                'button[type="button"]', 'input[type="button"]',
                 
-                # Container elements that might hold rates
-                'section', 'article', 'div[class*="container"]', 'div[class*="content"]'
+                # Container elements
+                'section', 'article', 'div[class*="container"]', 'div[class*="content"]',
+                'div[class*="wrapper"]', 'div[class*="panel"]', 'div[class*="section"]',
+                
+                # List and grid elements
+                'ul', 'ol', 'li', 'div[class*="list"]', 'div[class*="grid"]',
+                'div[class*="row"]', 'div[class*="col"]',
+                
+                # Generic divs and spans that might contain rates
+                'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
             ]
             
             found_rates = []
@@ -242,11 +385,29 @@ class LumaHotelScraper:
                             if not text or len(text.strip()) < 3:
                                 continue
                                 
-                            # Look for price patterns
+                            # Enhanced price patterns to catch more variations
                             price_patterns = [
+                                # Standard dollar formats
                                 r'\$(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)',  # $123.45 or $1,234.56
+                                r'\$(\d{1,4}(?:,\d{3})*)',  # $123 or $1,234
+                                
+                                # USD formats
                                 r'(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*(?:USD|dollars?)',  # 123.45 USD
-                                r'(?:USD|dollars?)\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)'   # USD 123.45
+                                r'(?:USD|dollars?)\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)',   # USD 123.45
+                                
+                                # Price with text
+                                r'(?:from|starting|price|rate|cost)\s*\$?(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)',
+                                r'\$?(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*(?:per|/)\s*(?:night|day)',
+                                
+                                # Numbers that look like prices in context
+                                r'(\d{3,4}(?:,\d{3})*(?:\.\d{2})?)',  # 123.45 or 1234.56 (3-4 digits)
+                                
+                                # Prices with currency symbols
+                                r'[$€£¥](\d{1,4}(?:,\d{3})*(?:\.\d{2})?)',
+                                
+                                # Prices in different formats
+                                r'(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*(?:total|nightly|night)',
+                                r'(?:total|nightly|night)\s*\$?(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)'
                             ]
                             
                             for pattern in price_patterns:
