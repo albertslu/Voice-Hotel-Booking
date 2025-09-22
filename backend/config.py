@@ -22,9 +22,13 @@ class Settings(BaseSettings):
     vapi_public_key: Optional[str] = None
     vapi_webhook_secret: Optional[str] = None
     
-    # Amadeus Configuration
-    amadeus_api_key: str
-    amadeus_api_secret: str
+    # Makcorps Hotel API Configuration
+    makcorps_api_key: str
+    makcorps_base_url: Optional[str] = "https://api.makcorps.com"
+    
+    # Amadeus Configuration (legacy - keeping for reference)
+    amadeus_api_key: Optional[str] = None
+    amadeus_api_secret: Optional[str] = None
     amadeus_base_url: Optional[str] = "https://api.amadeus.com/v1"
     
     # Supabase Configuration
