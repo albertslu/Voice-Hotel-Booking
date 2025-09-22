@@ -11,7 +11,7 @@ class AmadeusHotelClient:
         self.amadeus = Client(
             client_id=settings.amadeus_api_key,
             client_secret=settings.amadeus_api_secret,
-            hostname='test'  # Use test environment for sandbox mode
+            hostname='production'  # Use production environment
         )
 
     async def search_hotels(self, city_code: str, check_in_date: str, check_out_date: str, adults: int = 1) -> List[Dict]:
