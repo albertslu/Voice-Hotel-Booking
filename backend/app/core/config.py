@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     amadeus_api_secret: Optional[str] = None
     amadeus_base_url: Optional[str] = "https://api.amadeus.com/v1"
     
+    # Google Travel Partner Prices API Configuration
+    google_travel_partner_api_key: Optional[str] = None
+    google_travel_partner_base_url: Optional[str] = "https://travelpartner.googleapis.com/v3"
+    
+    # SerpAPI Configuration
+    serpapi_key: Optional[str] = None
+    serpapi_base_url: Optional[str] = "https://serpapi.com/search"
+    
     # Supabase Configuration
     supabase_url: str
     supabase_anon_key: str
