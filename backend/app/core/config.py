@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     secret_key: str
     
     # FastAPI & CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000", "https://hotelbooking.buzz"]
-    allowed_hosts: List[str] = ["localhost", "127.0.0.1", "api.hotelbooking.buzz"]
+    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000", "https://guestara.ai"]
+    allowed_hosts: List[str] = ["localhost", "127.0.0.1", "api.guestara.ai"]
     
     # Domain Configuration
     webhook_url: str = "https://api.guestara.ai/webhook/vapi"
