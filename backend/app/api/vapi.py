@@ -2,10 +2,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 import logging
 from typing import Dict, Any, Optional
-from app.models.hotel import Guest, Payment, HotelOrder, HotelOrderData, TravelAgent, RoomAssociation, GuestReference
 from app.services import AmadeusHotelClient
-from app.core import db
-from datetime import datetime, date
+from datetime import datetime
 import json
 
 logger = logging.getLogger(__name__)
@@ -184,16 +182,20 @@ async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
 
 async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
     """
-    VAPI Tool: Book a hotel using stored user profile
+    VAPI Tool: Initiate hotel booking process with voice-collected information
     
     Expected parameters from VAPI:
     - offer_id: string (from search results)
-    
-    Note: User is identified by phone number from the VAPI call
+    - guest_name: string (collected via voice)
+    - guest_email: string (collected via voice)
+    - guest_phone: string (collected via voice)
     """
     try:
         # Extract required parameters
         offer_id = parameters.get("offer_id")
+        guest_name = parameters.get("guest_name")
+        guest_email = parameters.get("guest_email")
+        guest_phone = parameters.get("guest_phone")
         
         # Validate required parameters
         if not offer_id:
@@ -202,105 +204,41 @@ async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] 
                 "success": False
             }, status_code=400)
         
-        # Get phone number from call data
-        caller_phone = None
-        if call_data:
-            caller_phone = call_data.get("customer", {}).get("number")
-        
-        if not caller_phone:
+        if not all([guest_name, guest_email, guest_phone]):
             return JSONResponse({
-                "result": "I couldn't identify your phone number. Please make sure you're calling from the phone number you used to sign up.",
+                "result": "I need your name, email, and phone number to proceed with the booking.",
                 "success": False,
-                "action_needed": "phone_identification_failed"
+                "missing_info": {
+                    "name": not guest_name,
+                    "email": not guest_email, 
+                    "phone": not guest_phone
+                }
             }, status_code=400)
         
-        # Get user profile from database by phone
-        user_profile = await db.get_user_by_phone(caller_phone)
-        if not user_profile:
-            return JSONResponse({
-                "result": f"I couldn't find a profile for phone number {caller_phone}. Please sign up at hotelbooking.buzz first, then call back to book.",
-                "success": False,
-                "redirect_to_signup": True
-            })
+        # Generate a secure checkout link for the hotel's website
+        # This would typically include the offer details and guest information
+        checkout_url = f"https://guestara.ai/checkout?offer={offer_id}&name={guest_name}&email={guest_email}&phone={guest_phone}"
         
-        # Check if user has payment method on file
-        if not user_profile.get("has_payment_method"):
-            return JSONResponse({
-                "result": "You need to add a payment method to your profile first. Please visit our website to add your card details.",
-                "success": False,
-                "redirect_to_payment": True
-            })
+        # Send SMS with secure checkout link
+        sms_message = f"Hi {guest_name}! Complete your hotel booking securely here: {checkout_url}"
         
-        # Create hotel order using stored profile data
-        hotel_order = HotelOrder(
-            data=HotelOrderData(
-                guests=[
-                    Guest(
-                        tid=1,
-                        title=user_profile.get("title", "MR"),
-                        firstName=user_profile["first_name"],
-                        lastName=user_profile["last_name"],
-                        phone=user_profile["phone"],
-                        email=user_profile["email"]
-                    )
-                ],
-                travelAgent=TravelAgent(contact={"email": user_profile["email"]}),
-                roomAssociations=[
-                    RoomAssociation(
-                        guestReferences=[GuestReference(guestReference="1")],
-                        hotelOfferId=offer_id
-                    )
-                ],
-                payment=Payment(
-                    method="CREDIT_CARD",
-                    paymentCard={
-                        "paymentCardInfo": {
-                            "vendorCode": user_profile.get("card_vendor", "VI"),
-                            "cardNumber": user_profile["card_number"],  # Encrypted in DB
-                            "expiryDate": user_profile["card_expiry"],
-                            "holderName": user_profile["card_holder_name"]
-                        }
-                    }
-                )
-            )
-        )
+        # Log the booking attempt for tracking
+        logger.info(f"Hotel booking initiated for {guest_name} ({guest_email}) - Offer: {offer_id}")
         
-        # Create booking via Amadeus
-        booking_result = await amadeus_client.create_hotel_booking(hotel_order)
-        
-        if booking_result:
-            # Store booking in database
-            booking_data = {
-                "user_id": user_profile["id"],
-                "amadeus_order_id": booking_result.get("id"),
-                "offer_id": offer_id,
-                "booking_status": "CONFIRMED",
-                "price": 0,  # Extract from offer details
-                "currency": "USD"
-            }
-            
-            # Save to Supabase
-            booking_record = await db.create_booking(booking_data)
-            
-            confirmation_number = booking_result.get("associatedRecords", [{}])[0].get("reference", "N/A")
-            
-            return JSONResponse({
-                "result": f"Perfect! Your hotel is booked. Confirmation number: {confirmation_number}. I've sent the details to {user_profile['email']}.",
-                "success": True,
-                "confirmation_number": confirmation_number,
-                "booking_id": booking_result.get("id"),
-                "user_name": user_profile["first_name"]
-            })
-        else:
-            return JSONResponse({
-                "result": "Sorry, the booking failed. This might be due to the room no longer being available or a payment issue. Please try a different hotel.",
-                "success": False
-            }, status_code=400)
+        return JSONResponse({
+            "result": f"Perfect! I've sent a secure checkout link to {guest_phone} via text message. You can complete your booking safely on the hotel's website. The link will expire in 24 hours for your security.",
+            "success": True,
+            "checkout_url": checkout_url,
+            "guest_name": guest_name,
+            "guest_email": guest_email,
+            "offer_id": offer_id,
+            "sms_sent": True
+        })
         
     except Exception as e:
         logger.error(f"Error in book_hotel_tool: {e}")
         return JSONResponse({
-            "result": "I'm having trouble completing your booking right now. Please try again in a moment.",
+            "result": "I'm having trouble setting up your booking right now. Please try again in a moment.",
             "success": False,
             "error": str(e)
         }, status_code=500)

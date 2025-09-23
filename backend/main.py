@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import logging
 from app.core import settings
-from app.api import vapi_router, users_router
+from app.api import vapi_router
 
 # Load environment variables
 load_dotenv()
@@ -32,7 +32,6 @@ app.add_middleware(
 
 # Include routers
 app.include_router(vapi_router)
-app.include_router(users_router)
 
 @app.get("/")
 async def root():
