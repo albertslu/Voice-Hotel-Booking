@@ -104,78 +104,59 @@ async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
         logger.info("Starting search_hotels_tool execution")
         
         # Extract parameters
-        destination = parameters.get("destination")
         check_in_date = parameters.get("check_in_date")
         check_out_date = parameters.get("check_out_date")
         guests = int(parameters.get("guests", 1))
         
-        logger.info(f"Extracted parameters: dest={destination}, checkin={check_in_date}, checkout={check_out_date}, guests={guests}")
+        logger.info(f"Extracted parameters: checkin={check_in_date}, checkout={check_out_date}, guests={guests}")
         
         # Validate required parameters
-        if not all([destination, check_in_date, check_out_date]):
+        if not all([check_in_date, check_out_date]):
             logger.warning("Missing required parameters")
-            return JSONResponse({
-                "error": "Missing required parameters",
-                "required": ["destination", "check_in_date", "check_out_date"]
-            }, status_code=400)
+            return "I need check-in and check-out dates to search for hotel rates."
         
-        # Get city code from destination
-        logger.info(f"Getting city code for {destination}")
-        city_code = await amadeus_client.get_city_code(destination)
-        logger.info(f"Got city code: {city_code}")
+        # Use AZDS API for SF Proper Hotel demo
+        logger.info("Using AZDS API for hotel search")
         
-        if not city_code:
-            logger.warning(f"No city code found for {destination}")
-            return JSONResponse({
-                "result": f"Could not find city code for {destination}. Please try a different city name.",
-                "success": False
-            })
-        
-        # Search hotels
-        logger.info(f"Searching hotels for city_code={city_code}")
-        hotels = await amadeus_client.search_hotels(
-            city_code=city_code,
-            check_in_date=check_in_date,
-            check_out_date=check_out_date,
-            adults=guests
-        )
-        logger.info(f"Got {len(hotels) if hotels else 0} hotels from Amadeus")
-        
-        if not hotels:
-            return JSONResponse({
-                "result": f"No hotels found in {destination} for {check_in_date} to {check_out_date}. Please try different dates.",
-                "success": False
-            })
-        
-        # Format results for voice response
-        hotel_list = []
-        for i, hotel_offer in enumerate(hotels[:3]):  # Top 3 results
-            hotel = hotel_offer.get("hotel", {})
-            offers = hotel_offer.get("offers", [])
+        try:
+            # Convert YYYY-MM-DD to MM/DD/YYYY format for AZDS API
+            from datetime import datetime
+            check_in_dt = datetime.strptime(check_in_date, "%Y-%m-%d")
+            check_out_dt = datetime.strptime(check_out_date, "%Y-%m-%d")
             
-            if offers:
-                offer = offers[0]
-                price = offer.get("price", {})
-                room = offer.get("room", {})
+            check_in_formatted = check_in_dt.strftime("%m/%d/%Y")
+            check_out_formatted = check_out_dt.strftime("%m/%d/%Y")
+            
+            # Call AZDS API for SF Proper Hotel
+            data = await azds_client.get_hotel_rates(
+                hotel_code="proper-sf",
+                check_in_date=check_in_formatted,
+                check_out_date=check_out_formatted,
+                adults=guests,
+                children=0
+            )
+            
+            rates = data.get("rates", [])
+            if not rates:
+                return "I'm sorry, I couldn't find any available rates for San Francisco Proper Hotel for those dates."
+            
+            # Format all rates for voice response
+            rate_descriptions = []
+            for i, rate in enumerate(rates):
+                price_before_tax = rate.get("basePriceBeforeTax", 0)
+                total_with_fees = rate.get("tax", {}).get("totalWithTaxesAndFees", 0)
+                room_code = rate.get("roomCode", "Room")
                 
-                hotel_info = {
-                    "index": i + 1,
-                    "name": hotel.get("name", "Unknown Hotel"),
-                    "price": f"${price.get('total', 'N/A')} {price.get('currency', '')}",
-                    "room_type": room.get("type", "Standard Room"),
-                    "offer_id": offer.get("id")
-                }
-                hotel_list.append(hotel_info)
-        
-        # Create voice-friendly response
-        hotel_descriptions = []
-        for hotel in hotel_list:
-            hotel_descriptions.append(f"{hotel['index']}. {hotel['name']} - {hotel['price']} for a {hotel['room_type']}")
-        
-        result_text = f"I found {len(hotel_list)} hotels in {destination}:\n" + "\n".join(hotel_descriptions)
-        
-        # VAPI expects just the result string, not a JSONResponse
-        return result_text
+                description = f"{i + 1}. {room_code} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
+                rate_descriptions.append(description)
+            
+            result_text = f"I found {len(rates)} rates at San Francisco Proper Hotel:\n" + "\n".join(rate_descriptions)
+            logger.info(f"AZDS API returned {len(rates)} rates")
+            return result_text
+            
+        except Exception as e:
+            logger.error(f"Error calling AZDS API: {e}")
+            return "I'm having trouble getting hotel rates right now. Please try again."
         
     except Exception as e:
         logger.error(f"Error in search_hotels_tool: {e}")
