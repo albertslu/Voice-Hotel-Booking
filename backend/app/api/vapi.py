@@ -90,14 +90,61 @@ async def handle_function_call(payload: Dict[Any, Any]):
             "details": str(e)
         }, status_code=500)
 
+def select_best_rates(rates: list, guests: int, occasion: str) -> list:
+    """
+    Select the 2 best rates based on party size and occasion
+    """
+    # Sort by price (cheapest first)
+    sorted_rates = sorted(rates, key=lambda x: x.get("basePriceBeforeTax", 999999))
+    
+    # Room type preferences based on occasion
+    if "business" in occasion or "work" in occasion:
+        # Prefer quiet, professional rooms
+        preferred_codes = ["PRDD", "PRKG", "JSTE"]
+    elif "romance" in occasion or "anniversary" in occasion or "honeymoon" in occasion:
+        # Prefer suites and premium rooms
+        preferred_codes = ["JSTE", "PSTE", "JS1DD", "PK1DD"]
+    elif "solo" in occasion or guests == 1:
+        # Include bunk rooms for solo travelers
+        preferred_codes = ["BUNK", "PRDD", "PRKG"]
+    elif guests >= 3:
+        # Prefer larger rooms for groups
+        preferred_codes = ["JS1DD", "PK1DD", "JSTE", "PSTE"]
+    else:
+        # Default: best value rooms
+        preferred_codes = ["PRDD", "PRKG", "JSTE"]
+    
+    # Find best rates matching preferences
+    selected = []
+    
+    # First, try to find preferred room types
+    for rate in sorted_rates:
+        room_code = rate.get("roomCode", "")
+        if room_code in preferred_codes and len(selected) < 2:
+            selected.append(rate)
+    
+    # If we don't have 2 rooms yet, add cheapest available (excluding BUNK unless solo)
+    for rate in sorted_rates:
+        if len(selected) >= 2:
+            break
+        room_code = rate.get("roomCode", "")
+        if rate not in selected:
+            # Skip BUNK rooms unless solo traveler or specifically requested
+            if room_code == "BUNK" and guests > 1 and "solo" not in occasion:
+                continue
+            selected.append(rate)
+    
+    return selected[:2]  # Always return max 2 rates
+
 async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
     """
     VAPI Tool: Search for SF Proper Hotel rates
     
     Expected parameters from VAPI:
-    - check_in_date: string (YYYY-MM-DD)
-    - check_out_date: string (YYYY-MM-DD) 
-    - guests: number (number of adults)
+    - check_in_date: string (YYYY-MM-DD) [REQUIRED]
+    - check_out_date: string (YYYY-MM-DD) [REQUIRED]
+    - adults: number (number of adult guests) [REQUIRED]
+    - occasion: string (purpose of travel: business, romance, solo, etc.) [OPTIONAL]
     """
     try:
         logger.info("Starting search_hotel execution")
@@ -105,7 +152,8 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
         # Extract parameters
         check_in_date = parameters.get("check_in_date")
         check_out_date = parameters.get("check_out_date")
-        guests = int(parameters.get("guests", 1))
+        guests = int(parameters.get("adults", parameters.get("guests", 2)))
+        occasion = parameters.get("occasion", "").lower()
         
         logger.info(f"Extracted parameters: checkin={check_in_date}, checkout={check_out_date}, guests={guests}")
         
@@ -139,17 +187,23 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
             if not rates:
                 return "I'm sorry, I couldn't find any available rates for San Francisco Proper Hotel for those dates."
             
-            # Format all rates for voice response
+            # Smart room selection based on occasion and party size
+            selected_rates = select_best_rates(rates, guests, occasion)
+            
+            # Format selected rates for voice response
             rate_descriptions = []
-            for i, rate in enumerate(rates):
+            for i, rate in enumerate(selected_rates):
                 price_before_tax = rate.get("basePriceBeforeTax", 0)
                 total_with_fees = rate.get("tax", {}).get("totalWithTaxesAndFees", 0)
                 room_code = rate.get("roomCode", "Room")
                 
-                description = f"{i + 1}. {room_code} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
+                # Use API description or fallback to room code
+                room_name = rate.get("description", room_code)
+                
+                description = f"{i + 1}. {room_name} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
                 rate_descriptions.append(description)
             
-            result_text = f"I found {len(rates)} rates at San Francisco Proper Hotel:\n" + "\n".join(rate_descriptions)
+            result_text = f"Perfect! I found the ideal options for your stay:\n" + "\n".join(rate_descriptions) + "\n\nWould you like to proceed with booking one of these rooms?"
             logger.info(f"AZDS API returned {len(rates)} rates")
             return result_text
             
