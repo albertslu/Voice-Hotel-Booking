@@ -28,6 +28,3 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 GOOGLE_TRAVEL_PARTNER_API_KEY=your-google-travel-partner-api-key-here
 SERPAPI_KEY=your-serpapi-key-here
 
-
-MAKCORPS_API_KEY=your-actual-makcorps-api-key-here
-MAKCORPS_BASE_URL=https://api.makcorps.com
