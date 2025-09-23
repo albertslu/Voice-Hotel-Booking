@@ -58,11 +58,11 @@ async def handle_function_call(payload: Dict[Any, Any]):
         logger.info(f"Function name type: {type(function_name)}, repr: {repr(function_name)}")
         logger.info("About to check function_name == 'search_hotels'")
         
-        if function_name == "search_hotels":
-            logger.info("Matched search_hotels function")
-            logger.info("About to call search_hotels_tool")
-            result = await search_hotels_tool(parameters)
-            logger.info(f"search_hotels_tool returned: {type(result)}")
+        if function_name == "search_hotel":
+            logger.info("Matched search_hotel function")
+            logger.info("About to call search_hotel")
+            result = await search_hotel(parameters)
+            logger.info(f"search_hotel returned: {type(result)}")
             
             # VAPI expects results in a specific format
             tool_call_id = tool_calls[0].get("id") if tool_calls else "unknown"
@@ -76,7 +76,7 @@ async def handle_function_call(payload: Dict[Any, Any]):
             })
         elif function_name == "book_hotel":
             # Pass the full payload to get call data (phone number)
-            return await book_hotel_tool(parameters, payload.get("call", {}))
+            return await book_hotel(parameters, payload.get("call", {}))
         else:
             logger.warning(f"Unknown function call: {function_name}")
             return JSONResponse({
@@ -90,18 +90,17 @@ async def handle_function_call(payload: Dict[Any, Any]):
             "details": str(e)
         }, status_code=500)
 
-async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
+async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
     """
-    VAPI Tool: Search for hotels using Amadeus API
+    VAPI Tool: Search for SF Proper Hotel rates
     
     Expected parameters from VAPI:
-    - destination: string (city name)
     - check_in_date: string (YYYY-MM-DD)
     - check_out_date: string (YYYY-MM-DD) 
     - guests: number (number of adults)
     """
     try:
-        logger.info("Starting search_hotels_tool execution")
+        logger.info("Starting search_hotel execution")
         
         # Extract parameters
         check_in_date = parameters.get("check_in_date")
@@ -159,10 +158,10 @@ async def search_hotels_tool(parameters: Dict[str, Any]) -> JSONResponse:
             return "I'm having trouble getting hotel rates right now. Please try again."
         
     except Exception as e:
-        logger.error(f"Error in search_hotels_tool: {e}")
-        return "I'm having trouble searching for hotels right now. Please try again."
+            logger.error(f"Error in search_hotel: {e}")
+            return "I'm having trouble searching for hotels right now. Please try again."
 
-async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
+async def book_hotel(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
     """
     VAPI Tool: Initiate hotel booking process with voice-collected information
     
@@ -218,7 +217,7 @@ async def book_hotel_tool(parameters: Dict[str, Any], call_data: Dict[str, Any] 
         })
         
     except Exception as e:
-        logger.error(f"Error in book_hotel_tool: {e}")
+        logger.error(f"Error in book_hotel: {e}")
         return JSONResponse({
             "result": "I'm having trouble setting up your booking right now. Please try again in a moment.",
             "success": False,
