@@ -90,6 +90,25 @@ async def handle_function_call(payload: Dict[Any, Any]):
             "details": str(e)
         }, status_code=500)
 
+def get_room_name(room_code: str) -> str:
+    """
+    Convert room codes to human-readable room names for SF Proper Hotel
+    """
+    room_names = {
+        "PRDD": "Proper Double Room",
+        "PRKG": "Proper King Room", 
+        "JSTE": "Junior Suite",
+        "PSTE": "Proper Suite",
+        "JS1DD": "Junior Suite with Double Beds",
+        "JS1PK": "Junior Suite with King Bed",
+        "PK1DD": "Proper King Room with Double Beds",
+        "BUNK": "Bunk Room",
+        # Add more mappings as needed
+    }
+    
+    # Return mapped name or enhanced version of room code
+    return room_names.get(room_code, f"{room_code} Room")
+
 def select_best_rates(rates: list, guests: int, occasion: str) -> list:
     """
     Select the 2 best rates based on party size and occasion
@@ -197,10 +216,17 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
                 total_with_fees = rate.get("tax", {}).get("totalWithTaxesAndFees", 0)
                 room_code = rate.get("roomCode", "Room")
                 
-                # Use API description or fallback to room code
-                room_name = rate.get("description", room_code)
+                # Get room type name and rate package description
+                room_name = get_room_name(room_code)
+                rate_package = rate.get("description", "")
                 
-                description = f"{i + 1}. {room_name} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
+                # Combine room type and package for better description
+                if rate_package and rate_package != room_name:
+                    full_description = f"{room_name} ({rate_package})"
+                else:
+                    full_description = room_name
+                
+                description = f"{i + 1}. {full_description} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
                 rate_descriptions.append(description)
             
             result_text = f"Perfect! I found the ideal options for your stay:\n" + "\n".join(rate_descriptions) + "\n\nWould you like to proceed with booking one of these rooms?"
