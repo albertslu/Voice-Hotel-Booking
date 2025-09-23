@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     allowed_hosts: List[str] = ["localhost", "127.0.0.1", "api.hotelbooking.buzz"]
     
     # Domain Configuration
-    webhook_url: str = "https://api.hotelbooking.buzz/webhook/vapi"
+    webhook_url: str = "https://api.guestara.ai/webhook/vapi"
     
     # VAPI Configuration
     vapi_api_key: Optional[str] = None
