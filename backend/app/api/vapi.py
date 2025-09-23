@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 import logging
 from typing import Dict, Any, Optional
 from app.services import AmadeusHotelClient
+from app.services.azds_service import azds_client
 from datetime import datetime
 import json
 
