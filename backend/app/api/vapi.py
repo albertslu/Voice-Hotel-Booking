@@ -130,12 +130,12 @@ async def handle_function_call(payload: Dict[Any, Any]):
             # Step 1: Select room from search results
             logger.info("Matched book_hotel_1 function")
             logger.info("About to call book_hotel_1")
-            result = await book_hotel_1(parameters, payload.get("call", {}))
+            result = await book_hotel_1(parameters, payload)
             logger.info(f"book_hotel_1 returned: {type(result)}")
             return result
         elif function_name == "book_hotel_2":
             # Step 2: Collect guest info and payment, complete booking
-            return await book_hotel_2(parameters, payload.get("call", {}))
+            return await book_hotel_2(parameters, payload)
         elif function_name == "start_over":
             # Clear current session and restart booking process
             return await start_over(parameters, payload.get("call", {}))
@@ -444,7 +444,7 @@ async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] =
             logger.error(f"Error in search_hotel: {e}")
             return "I'm having trouble searching for hotels right now. Please try again."
 
-async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
+async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = None) -> JSONResponse:
     """
     VAPI Tool: Step 1 - Select room from search results
     
@@ -459,7 +459,7 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Extract caller phone number from VAPI payload
         caller_phone = None
         try:
-            call_info = call_data.get("call", {}) if call_data else {}
+            call_info = payload.get("call", {}) if payload else {}
             customer = call_info.get("customer", {})
             caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
             logger.info(f"Extracted caller phone: {caller_phone}")
@@ -633,7 +633,7 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
             "error": str(e)
         }, status_code=500)
 
-async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
+async def book_hotel_2(parameters: Dict[str, Any], payload: Dict[str, Any] = None) -> JSONResponse:
     """
     VAPI Tool: Step 2 - Collect complete guest information and payment details to complete booking
     
@@ -662,7 +662,7 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Extract caller phone number from VAPI payload
         caller_phone = None
         try:
-            call_info = call_data.get("call", {}) if call_data else {}
+            call_info = payload.get("call", {}) if payload else {}
             customer = call_info.get("customer", {})
             caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
             logger.info(f"Extracted caller phone: {caller_phone}")
