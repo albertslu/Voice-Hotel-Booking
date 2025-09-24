@@ -79,15 +79,16 @@ async def handle_function_call(payload: Dict[Any, Any]):
         logger.info(f"Function name type: {type(function_name)}, repr: {repr(function_name)}")
         logger.info("About to check function_name == 'search_hotels'")
         
-        # Extract caller phone number from VAPI payload
+        # Extract caller phone number from VAPI payload (try both possible locations)
         caller_phone = None
         try:
-            customer = payload.get("call", {}).get("customer", {})
-            if not customer:
-                # Try alternative path
-                customer = payload.get("customer", {})
-            caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
-            logger.info(f"Extracted caller phone: {caller_phone}")
+            # VAPI sends customer info in different locations depending on the call type
+            customer = payload.get("call", {}).get("customer", {}) or payload.get("customer", {})
+            if customer.get("number"):
+                caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
+                logger.info(f"Extracted caller phone: {caller_phone}")
+            else:
+                logger.warning("No customer phone number found in VAPI payload")
         except Exception as e:
             logger.warning(f"Could not extract caller phone: {e}")
         
@@ -456,24 +457,23 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
     try:
         logger.info("Starting book_hotel_1 execution")
         
-        # Extract caller phone number from VAPI payload
-        caller_phone = None
-        try:
-            call_info = payload.get("call", {}) if payload else {}
-            customer = call_info.get("customer", {})
-            caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
-            logger.info(f"Extracted caller phone: {caller_phone}")
-        except Exception as e:
-            logger.error(f"Failed to extract caller phone: {e}")
-        
         # Extract parameters
         room_choice = int(parameters.get("room_choice", 1))
+        
+        # Get caller phone from payload (same extraction logic as handle_function_call)
+        caller_phone = None
+        try:
+            customer = payload.get("call", {}).get("customer", {}) or payload.get("customer", {}) if payload else {}
+            if customer.get("number"):
+                caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
+                logger.info(f"Extracted caller phone: {caller_phone}")
+        except Exception as e:
+            logger.error(f"Failed to extract caller phone: {e}")
         
         # Find session ID using caller's phone number
         session_id = None
         if caller_phone:
             # Look for the most recent session for this phone number
-            # We'll search through recent session IDs to find one with matching caller_phone
             import time
             current_time = int(time.time())
             # Check sessions from the last hour
@@ -659,13 +659,13 @@ async def book_hotel_2(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
     try:
         logger.info("Starting book_hotel_2 execution")
         
-        # Extract caller phone number from VAPI payload
+        # Get caller phone from payload (same extraction logic as handle_function_call)
         caller_phone = None
         try:
-            call_info = payload.get("call", {}) if payload else {}
-            customer = call_info.get("customer", {})
-            caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
-            logger.info(f"Extracted caller phone: {caller_phone}")
+            customer = payload.get("call", {}).get("customer", {}) or payload.get("customer", {}) if payload else {}
+            if customer.get("number"):
+                caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
+                logger.info(f"Extracted caller phone: {caller_phone}")
         except Exception as e:
             logger.error(f"Failed to extract caller phone: {e}")
         
