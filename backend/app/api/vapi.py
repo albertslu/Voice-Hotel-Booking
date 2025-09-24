@@ -228,51 +228,6 @@ def get_room_name(room_code: str) -> str:
     # Return mapped name or enhanced version of room code
     return room_names.get(room_code, f"{room_code} Room")
 
-def select_best_rates(rates: list, guests: int, occasion: str) -> list:
-    """
-    Select the 2 best rates based on party size and occasion
-    """
-    # Sort by price (cheapest first)
-    sorted_rates = sorted(rates, key=lambda x: x.get("basePriceBeforeTax", 999999))
-    
-    # Room type preferences based on occasion
-    if "business" in occasion or "work" in occasion:
-        # Prefer quiet, professional rooms
-        preferred_codes = ["PRDD", "PRKG", "JSTE"]
-    elif "romance" in occasion or "anniversary" in occasion or "honeymoon" in occasion:
-        # Prefer suites and premium rooms
-        preferred_codes = ["JSTE", "PSTE", "JS1DD", "PK1DD"]
-    elif "solo" in occasion or guests == 1:
-        # Include bunk rooms for solo travelers
-        preferred_codes = ["BUNK", "PRDD", "PRKG"]
-    elif guests >= 3:
-        # Prefer larger rooms for groups
-        preferred_codes = ["JS1DD", "PK1DD", "JSTE", "PSTE"]
-    else:
-        # Default: best value rooms
-        preferred_codes = ["PRDD", "PRKG", "JSTE"]
-    
-    # Find best rates matching preferences
-    selected = []
-    
-    # First, try to find preferred room types
-    for rate in sorted_rates:
-        room_code = rate.get("roomCode", "")
-        if room_code in preferred_codes and len(selected) < 2:
-            selected.append(rate)
-    
-    # If we don't have 2 rooms yet, add cheapest available (excluding BUNK unless solo)
-    for rate in sorted_rates:
-        if len(selected) >= 2:
-            break
-        room_code = rate.get("roomCode", "")
-        if rate not in selected:
-            # Skip BUNK rooms unless solo traveler or specifically requested
-            if room_code == "BUNK" and guests > 1 and "solo" not in occasion:
-                continue
-            selected.append(rate)
-    
-    return selected[:2]  # Always return max 2 rates
 
 async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] = None) -> JSONResponse:
     """
@@ -335,8 +290,8 @@ async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] =
             if not rates:
                 return "I'm sorry, I couldn't find any available rates for San Francisco Proper Hotel for those dates."
             
-            # Smart room selection based on occasion and party size
-            selected_rates = select_best_rates(rates, guests, occasion)
+            # Send all rates to VAPI - let the AI choose the best options based on conversation
+            selected_rates = rates  # Send all available rates for AI selection
             
             # Create booking session with Redis
             booking_session_id = f"booking_{int(datetime.now().timestamp())}"
@@ -453,7 +408,8 @@ async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] =
                 description = f"{i + 1}. {full_description} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
                 rate_descriptions.append(description)
             
-            result_text = f"Perfect! I found the ideal options for your stay:\n" + "\n".join(rate_descriptions) + f"\n\nI've started preparing your booking (Session: {booking_session_id}). Which room would you like to book? I'll need your name, email, and phone number to proceed."
+            # Return all available rates for VAPI to intelligently select from
+            result_text = f"Perfect! I found {len(selected_rates)} available options for your stay from {check_in_date} to {check_out_date} for {guests} guest{'s' if guests != 1 else ''}:\n\n" + "\n".join(rate_descriptions) + f"\n\nBooking session started: {booking_session_id}"
             logger.info(f"AZDS API returned {len(rates)} rates, booking session started: {booking_session_id}")       
             
             # Create a JSON file with room options for debugging or logging purposes
