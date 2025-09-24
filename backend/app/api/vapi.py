@@ -99,6 +99,9 @@ async def handle_function_call(payload: Dict[Any, Any]):
         elif function_name == "book_hotel_2":
             # Step 2: Collect guest info and payment, complete booking
             return await book_hotel_2(parameters, payload.get("call", {}))
+        elif function_name == "start_over":
+            # Clear current session and restart booking process
+            return await start_over(parameters, payload.get("call", {}))
         elif function_name == "book_hotel":
             # Legacy booking function
             return await book_hotel(parameters, payload.get("call", {}))
@@ -114,6 +117,64 @@ async def handle_function_call(payload: Dict[Any, Any]):
             "error": "Failed to process function call",
             "details": str(e)
         }, status_code=500)
+
+async def start_over(parameters: Dict[str, Any], call_data: Dict[str, Any] = None) -> JSONResponse:
+    """
+    VAPI Tool: Start Over - Clear current booking session and restart the process
+    
+    Expected parameters from VAPI:
+    - session_id: string (current booking session ID) [OPTIONAL - can be retrieved from context]
+    """
+    try:
+        logger.info("Starting start_over execution")
+        
+        # Extract parameters
+        session_id = parameters.get("session_id")
+        
+        logger.info(f"Start Over - Session: {session_id}")
+        
+        # If session_id provided, try to clear it
+        if session_id:
+            # Get session info before deleting (for logging)
+            session_data = session_manager.get_session(session_id)
+            if session_data:
+                step = session_data.get("step", "unknown")
+                logger.info(f"Clearing session at step: {step}")
+                
+                # Delete the session
+                deleted = session_manager.delete_session(session_id)
+                if deleted:
+                    logger.info(f"Successfully cleared session: {session_id}")
+                else:
+                    logger.warning(f"Failed to clear session: {session_id}")
+            else:
+                logger.info(f"Session not found or already cleared: {session_id}")
+        
+        # TODO: If you have browser automation running, stop it here
+        # Example:
+        # if session_id:
+        #     automation_payload = {
+        #         "action": "stop_automation",
+        #         "session_id": session_id
+        #     }
+        #     await browser_automation_client.stop_session(automation_payload)
+        
+        return JSONResponse({
+            "result": "Absolutely! I've cleared your current booking. Let's start fresh - what dates would you like to stay at San Francisco Proper Hotel?",
+            "success": True,
+            "action": "start_over",
+            "session_cleared": bool(session_id),
+            "next_step": "collect_dates"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in start_over: {e}")
+        return JSONResponse({
+            "result": "I've reset our conversation. Let's start fresh - what dates would you like to stay at San Francisco Proper Hotel?",
+            "success": True,
+            "action": "start_over",
+            "error": str(e)
+        })
 
 def get_room_name(room_code: str) -> str:
     """
