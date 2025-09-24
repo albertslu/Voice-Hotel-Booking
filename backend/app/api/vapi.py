@@ -57,7 +57,16 @@ async def handle_function_call(payload: Dict[Any, Any]):
             tool_call = tool_calls[0]
             function_info = tool_call.get("function", {})
             function_name = function_info.get("name")
-            parameters = function_info.get("arguments", {})
+            arguments = function_info.get("arguments", {})
+            # Parse arguments if it's a string
+            if isinstance(arguments, str):
+                try:
+                    parameters = json.loads(arguments)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse arguments JSON: {arguments}")
+                    parameters = {}
+            else:
+                parameters = arguments
         elif function_call:
             # Handle function-call format
             function_name = function_call.get("name")

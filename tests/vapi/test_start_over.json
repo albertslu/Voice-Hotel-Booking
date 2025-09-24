@@ -1,0 +1,15 @@
+{
+  "message": {
+    "type": "tool-calls",
+    "toolCalls": [
+      {
+        "id": "start-over-test",
+        "type": "function",
+        "function": {
+          "name": "start_over",
+          "arguments": "{\"session_id\": \"test-session-123\"}"
+        }
+      }
+    ]
+  }
+}

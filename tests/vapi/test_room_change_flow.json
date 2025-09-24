@@ -1,0 +1,50 @@
+[
+  {
+    "step": "1_search",
+    "message": {
+      "type": "tool-calls",
+      "toolCalls": [
+        {
+          "id": "search-step",
+          "type": "function",
+          "function": {
+            "name": "search_hotel",
+            "arguments": "{\"check_in_date\": \"2025-12-20\", \"check_out_date\": \"2025-12-22\", \"adults\": 2, \"occasion\": \"anniversary\"}"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "step": "2_select_room_1",
+    "message": {
+      "type": "tool-calls",
+      "toolCalls": [
+        {
+          "id": "select-room-1",
+          "type": "function",
+          "function": {
+            "name": "book_hotel_1",
+            "arguments": "{\"session_id\": \"SESSION_ID_FROM_STEP_1\", \"room_choice\": 1}"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "step": "3_change_to_room_2",
+    "message": {
+      "type": "tool-calls",
+      "toolCalls": [
+        {
+          "id": "change-room-2",
+          "type": "function",
+          "function": {
+            "name": "book_hotel_1",
+            "arguments": "{\"session_id\": \"SESSION_ID_FROM_STEP_1\", \"room_choice\": 2}"
+          }
+        }
+      ]
+    }
+  }
+]

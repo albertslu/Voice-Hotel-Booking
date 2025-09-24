@@ -1,0 +1,17 @@
+{
+  "message": {
+    "type": "tool-calls",
+    "toolCalls": [{
+      "id": "malformed-date-test",
+      "type": "function", 
+      "function": {
+        "name": "search_hotel",
+        "arguments": {
+          "check_in_date": "tomorrow",
+          "check_out_date": "next week",
+          "adults": "two people"
+        }
+      }
+    }]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "message": {
+    "type": "tool-calls",
+    "toolCalls": [{
+      "id": "test-invalid-session",
+      "type": "function", 
+      "function": {
+        "name": "book_hotel_1",
+        "arguments": {
+          "session_id": "booking_1758747035",
+          "room_choice": 2
+        }
+      }
+    }]
+  }
+}

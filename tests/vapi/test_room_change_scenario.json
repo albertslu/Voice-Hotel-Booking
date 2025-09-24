@@ -1,0 +1,15 @@
+{
+  "message": {
+    "type": "tool-calls",
+    "toolCalls": [
+      {
+        "id": "room-change-test",
+        "type": "function",
+        "function": {
+          "name": "search_hotel",
+          "arguments": "{\"check_in_date\": \"2025-12-20\", \"check_out_date\": \"2025-12-22\", \"adults\": 2, \"occasion\": \"anniversary\"}"
+        }
+      }
+    ]
+  }
+}

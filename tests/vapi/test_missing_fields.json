@@ -1,0 +1,18 @@
+{
+  "message": {
+    "type": "tool-calls",
+    "toolCalls": [{
+      "id": "test-missing-fields",
+      "type": "function", 
+      "function": {
+        "name": "book_hotel_2",
+        "arguments": {
+          "session_id": "booking_1758747035",
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "john@example.com"
+        }
+      }
+    }]
+  }
+}
