@@ -128,7 +128,11 @@ async def handle_function_call(payload: Dict[Any, Any]):
                 })
         elif function_name == "book_hotel_1":
             # Step 1: Select room from search results
-            return await book_hotel_1(parameters, payload.get("call", {}))
+            logger.info("Matched book_hotel_1 function")
+            logger.info("About to call book_hotel_1")
+            result = await book_hotel_1(parameters, payload.get("call", {}))
+            logger.info(f"book_hotel_1 returned: {type(result)}")
+            return result
         elif function_name == "book_hotel_2":
             # Step 2: Collect guest info and payment, complete booking
             return await book_hotel_2(parameters, payload.get("call", {}))
