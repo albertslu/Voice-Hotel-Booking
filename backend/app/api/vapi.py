@@ -1165,12 +1165,14 @@ async def book_complete_endpoint(request: Request):
             "room_choice": room_choice
         }, {})
         
-        if not room_result.body.decode().find('"success": true') > -1:
+        # Check if room selection was successful
+        room_response = json.loads(room_result.body.decode())
+        if not room_response.get("success", False):
             return JSONResponse({
                 "error": "Failed to select room",
                 "success": False,
                 "step": "room_selection",
-                "room_result": room_result.body.decode()
+                "details": room_response
             }, status_code=400)
         
         logger.info(f"Room selected: choice {room_choice}")
