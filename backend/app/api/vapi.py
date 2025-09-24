@@ -79,10 +79,23 @@ async def handle_function_call(payload: Dict[Any, Any]):
         logger.info(f"Function name type: {type(function_name)}, repr: {repr(function_name)}")
         logger.info("About to check function_name == 'search_hotels'")
         
+        # Extract caller phone number from VAPI payload
+        caller_phone = None
+        try:
+            customer = payload.get("call", {}).get("customer", {})
+            if not customer:
+                # Try alternative path
+                customer = payload.get("customer", {})
+            caller_phone = customer.get("number", "")
+            logger.info(f"Extracted caller phone: {caller_phone}")
+        except Exception as e:
+            logger.warning(f"Could not extract caller phone: {e}")
+        
         if function_name == "search_hotel":
             logger.info("Matched search_hotel function")
             logger.info("About to call search_hotel")
-            result = await search_hotel(parameters)
+            # Pass caller phone to search_hotel
+            result = await search_hotel(parameters, caller_phone=caller_phone)
             logger.info(f"search_hotel returned: {type(result)}")
             
             # Handle structured response from search_hotel
@@ -261,7 +274,7 @@ def select_best_rates(rates: list, guests: int, occasion: str) -> list:
     
     return selected[:2]  # Always return max 2 rates
 
-async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
+async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] = None) -> JSONResponse:
     """
     VAPI Tool: Search for SF Proper Hotel rates
     
@@ -350,7 +363,8 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
                 "step": "search_completed",
                 "room_options": room_options,
                 "selected_rates": selected_rates,
-                "hotel": "sf-proper"
+                "hotel": "sf-proper",
+                "caller_phone": caller_phone  # Auto-captured from VAPI
             }
             
             # Store session in Redis
@@ -644,7 +658,7 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
     - first_name: string (guest first name) [REQUIRED]
     - last_name: string (guest last name) [REQUIRED]
     - email: string (contact email) [REQUIRED]
-    - phone: string (contact phone) [REQUIRED]
+    - phone: string (contact phone) [AUTO-CAPTURED from VAPI caller ID, fallback to parameter]
     - address: string (street address) [REQUIRED]
     - zip_code: string (postal/zip code) [REQUIRED]
     - city: string (city) [REQUIRED]
@@ -693,7 +707,14 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         first_name = parameters.get("first_name")
         last_name = parameters.get("last_name")
         email = parameters.get("email")
-        phone = parameters.get("phone")
+        # Use stored phone number from search_hotel (auto-captured from VAPI)
+        phone = session_data.get("caller_phone", parameters.get("phone", ""))
+        if session_data.get("caller_phone"):
+            logger.info(f"Using auto-captured phone number: {phone}")
+        elif parameters.get("phone"):
+            logger.info(f"Using provided phone number: {phone}")
+        else:
+            logger.warning("No phone number available from VAPI or parameters")
         address = parameters.get("address")
         zip_code = parameters.get("zip_code")
         city = parameters.get("city")
