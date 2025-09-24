@@ -1060,4 +1060,137 @@ async def test_endpoint():
     """Test endpoint to verify VAPI integration is working"""
     return {"message": "VAPI webhook is working!", "timestamp": datetime.now().isoformat()}
 
+@router.post("/book-complete")
+async def book_complete_endpoint(request: Request):
+    """
+    REST endpoint for complete end-to-end hotel booking
+    
+    Expected JSON payload - ALL FIELDS REQUIRED:
+    {
+        "check_in_date": "2025-10-20",
+        "check_out_date": "2025-10-23", 
+        "adults": 2,
+        "room_choice": 1,
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john@example.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "zip_code": "12345",
+        "city": "San Francisco", 
+        "state": "CA",
+        "country": "US",
+        "card_number": "4111111111111111",
+        "expiry_month": "12",
+        "expiry_year": "2025",
+        "cvv": "123",
+        "cardholder_name": "John Doe"
+    }
+    """
+    try:
+        payload = await request.json()
+        logger.info(f"Complete booking request: {payload}")
+        
+        # Extract ALL required parameters
+        check_in_date = payload.get("check_in_date")
+        check_out_date = payload.get("check_out_date")
+        adults = int(payload.get("adults", 2))
+        room_choice = int(payload.get("room_choice", 1))
+        
+        # Guest info - all required
+        guest_info = {
+            "first_name": payload.get("first_name"),
+            "last_name": payload.get("last_name"),
+            "email": payload.get("email"),
+            "phone": payload.get("phone"),
+            "address": payload.get("address"),
+            "zip_code": payload.get("zip_code"),
+            "city": payload.get("city"),
+            "state": payload.get("state"),
+            "country": payload.get("country")
+        }
+        
+        # Payment info - all required
+        payment_info = {
+            "card_number": payload.get("card_number"),
+            "expiry_month": payload.get("expiry_month"),
+            "expiry_year": payload.get("expiry_year"),
+            "cvv": payload.get("cvv"),
+            "cardholder_name": payload.get("cardholder_name")
+        }
+        
+        # Validate ALL required parameters
+        missing_fields = []
+        if not check_in_date:
+            missing_fields.append("check_in_date")
+        if not check_out_date:
+            missing_fields.append("check_out_date")
+            
+        for field, value in guest_info.items():
+            if not value:
+                missing_fields.append(field)
+                
+        for field, value in payment_info.items():
+            if not value:
+                missing_fields.append(field)
+                
+        if missing_fields:
+            return JSONResponse({
+                "error": f"Missing required fields: {', '.join(missing_fields)}",
+                "success": False
+            }, status_code=400)
+        
+        logger.info(f"Starting complete booking flow for {guest_info['first_name']} {guest_info['last_name']}")
+        
+        # Step 1: Search hotels
+        search_result = await search_hotel({
+            "check_in_date": check_in_date,
+            "check_out_date": check_out_date,
+            "adults": adults
+        })
+        
+        if isinstance(search_result, str):
+            return JSONResponse({
+                "error": search_result,
+                "success": False,
+                "step": "search"
+            }, status_code=400)
+            
+        session_id = search_result["session_id"]
+        logger.info(f"Search completed, session: {session_id}")
+        
+        # Step 2: Select room
+        room_result = await book_hotel_1({
+            "session_id": session_id,
+            "room_choice": room_choice
+        }, {})
+        
+        if not room_result.body.decode().find('"success": true') > -1:
+            return JSONResponse({
+                "error": "Failed to select room",
+                "success": False,
+                "step": "room_selection",
+                "room_result": room_result.body.decode()
+            }, status_code=400)
+        
+        logger.info(f"Room selected: choice {room_choice}")
+        
+        # Step 3: Complete booking with payment
+        final_result = await book_hotel_2({
+            "session_id": session_id,
+            **guest_info,
+            **payment_info
+        }, {})
+        
+        logger.info("Complete booking flow finished")
+        return final_result
+        
+    except Exception as e:
+        logger.error(f"Error in complete booking endpoint: {e}")
+        return JSONResponse({
+            "error": "Failed to complete booking",
+            "success": False,
+            "details": str(e)
+        }, status_code=500)
+
 # Test endpoint removed - amadeus_client no longer available
