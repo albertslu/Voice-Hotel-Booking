@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     supabase_anon_key: str
     supabase_service_role_key: Optional[str] = None
     
+    # Redis Configuration
+    redis_host: str = "127.0.0.1"
+    redis_port: int = 6379
+    redis_db: int = 0
+    redis_password: Optional[str] = None
+    redis_url: Optional[str] = None  # Alternative to individual settings
+    
     # Logging
     log_level: str = "INFO"
 

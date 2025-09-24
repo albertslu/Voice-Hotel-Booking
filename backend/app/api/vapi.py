@@ -4,6 +4,7 @@ import logging
 from typing import Dict, Any, Optional
 from app.services import AmadeusHotelClient
 from app.services.azds_service import azds_client
+from app.services.session_manager import session_manager
 from datetime import datetime
 import json
 
@@ -233,7 +234,7 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
             # Smart room selection based on occasion and party size
             selected_rates = select_best_rates(rates, guests, occasion)
             
-            # TODO: Trigger browser automation API to start booking process with search parameters
+            # Create booking session with Redis
             booking_session_id = f"booking_{int(datetime.now().timestamp())}"
             
             # Store room details for later selection in book_hotel_1
@@ -248,6 +249,24 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
                     "total_with_fees": rate.get("tax", {}).get("totalWithTaxesAndFees", 0),
                     "rate_data": rate  # Store full rate data for browser automation
                 })
+            
+            # Create session in Redis with all booking context
+            session_data = {
+                "check_in_date": check_in_date,
+                "check_out_date": check_out_date,
+                "guests": guests,
+                "occasion": occasion,
+                "step": "search_completed",
+                "room_options": room_options,
+                "selected_rates": selected_rates,
+                "hotel": "sf-proper"
+            }
+            
+            # Store session in Redis
+            session_created = session_manager.create_session(booking_session_id, session_data)
+            if not session_created:
+                logger.error(f"Failed to create session: {booking_session_id}")
+                return "I'm having trouble starting your booking. Please try again."
             
             # Prepare automation payload for browser automation service
             automation_payload = {
@@ -266,13 +285,10 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
             }
             
             logger.info(f"Browser automation payload for search: {automation_payload}")
+            logger.info(f"Session stored in Redis: {booking_session_id}")
             
             # TODO: Replace with actual API call to browser automation service
             # response = await browser_automation_client.start_booking_with_search(automation_payload)
-            
-            # TODO: Store room_options in session/cache for book_hotel_1 to access
-            # For now, we'll include it in the response for the AI to pass along
-            # In production, you'd store this in Redis/database with the session_id
             
             # Format selected rates for voice response
             rate_descriptions = []
@@ -320,7 +336,6 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
     Expected parameters from VAPI:
     - session_id: string (from search_hotel) [REQUIRED]
     - room_choice: number (1 or 2, which room from search results) [REQUIRED]
-    - room_options: array (room details from search_hotel) [REQUIRED for browser automation]
     """
     try:
         logger.info("Starting book_hotel_1 execution")
@@ -328,7 +343,6 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Extract parameters
         session_id = parameters.get("session_id")
         room_choice = int(parameters.get("room_choice", 1))
-        room_options = parameters.get("room_options", [])
         
         logger.info(f"Book Hotel Step 1 - Session: {session_id}, Room Choice: {room_choice}")
         
@@ -336,6 +350,24 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         if not session_id:
             return JSONResponse({
                 "result": "I need the booking session ID to continue. Please search for hotels first.",
+                "success": False,
+                "step": 1
+            }, status_code=400)
+        
+        # Get session data from Redis
+        session_data = session_manager.get_session(session_id)
+        if not session_data:
+            return JSONResponse({
+                "result": "I couldn't find your booking session. Please search for hotels again.",
+                "success": False,
+                "step": 1
+            }, status_code=400)
+        
+        # Get room options from session
+        room_options = session_data.get("room_options", [])
+        if not room_options:
+            return JSONResponse({
+                "result": "I couldn't find the room options. Please search for hotels again.",
                 "success": False,
                 "step": 1
             }, status_code=400)
@@ -362,6 +394,22 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
                 "step": 1
             }, status_code=400)
         
+        # Update session with room selection
+        session_updates = {
+            "step": "room_selected",
+            "room_choice": room_choice,
+            "selected_room": selected_room
+        }
+        
+        session_updated = session_manager.update_session(session_id, session_updates)
+        if not session_updated:
+            logger.error(f"Failed to update session: {session_id}")
+            return JSONResponse({
+                "result": "I'm having trouble saving your room selection. Please try again.",
+                "success": False,
+                "step": 1
+            }, status_code=500)
+        
         # TODO: Call browser automation API to select the specific room/offer
         automation_payload = {
             "action": "select_room_offer",
@@ -381,6 +429,7 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         }
         
         logger.info(f"Browser automation payload: {automation_payload}")
+        logger.info(f"Session updated with room selection: {session_id}")
         
         # TODO: Replace with actual API call to browser automation service
         # response = await browser_automation_client.select_room_offer(automation_payload)
@@ -436,6 +485,31 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Extract parameters
         session_id = parameters.get("session_id")
         
+        # Validate session exists
+        if not session_id:
+            return JSONResponse({
+                "result": "I need the booking session ID to continue. Please start the booking process again.",
+                "success": False,
+                "step": 2
+            }, status_code=400)
+        
+        # Get session data from Redis
+        session_data = session_manager.get_session(session_id)
+        if not session_data:
+            return JSONResponse({
+                "result": "I couldn't find your booking session. Please start the booking process again.",
+                "success": False,
+                "step": 2
+            }, status_code=400)
+        
+        # Verify we have room selection from previous step
+        if not session_data.get("selected_room"):
+            return JSONResponse({
+                "result": "I need you to select a room first. Please start the booking process again.",
+                "success": False,
+                "step": 2
+            }, status_code=400)
+        
         # Guest information
         first_name = parameters.get("first_name")
         last_name = parameters.get("last_name")
@@ -455,14 +529,6 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         cardholder_name = parameters.get("cardholder_name")
         
         logger.info(f"Book Hotel Step 2 - Session: {session_id}, Guest: {first_name} {last_name}, Card ending: {card_number[-4:] if len(card_number) >= 4 else 'XXXX'}")
-        
-        # Validate required parameters
-        if not session_id:
-            return JSONResponse({
-                "result": "I need the booking session ID to continue. Please start the booking process again.",
-                "success": False,
-                "step": 2
-            }, status_code=400)
         
         # Check for missing guest information
         guest_fields = {
@@ -627,6 +693,37 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Generate confirmation number (in production, this would come from the hotel's booking system)
         import random
         confirmation_number = f"SF{random.randint(100000, 999999)}"
+        
+        # Update session with final booking information
+        final_session_updates = {
+            "step": "booking_completed",
+            "status": "completed",
+            "confirmation_number": confirmation_number,
+            "guest_info": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "phone": phone,
+                "address": address,
+                "zip_code": zip_code,
+                "city": city,
+                "state": state,
+                "country": country
+            },
+            "payment_info": {
+                "cardholder_name": cardholder_name,
+                "card_last_four": card_digits[-4:] if len(card_digits) >= 4 else "XXXX",
+                "expiry_month": expiry_month.zfill(2),
+                "expiry_year": expiry_year
+            },
+            "completed_at": datetime.now().isoformat()
+        }
+        
+        session_updated = session_manager.update_session(session_id, final_session_updates)
+        if not session_updated:
+            logger.warning(f"Failed to update session with final booking info: {session_id}")
+        else:
+            logger.info(f"Session completed and stored: {session_id}")
         
         return JSONResponse({
             "result": f"Excellent! Your reservation has been confirmed, {first_name}. Your confirmation number is {confirmation_number}. You'll receive a confirmation email at {email} shortly with all the details. Thank you for choosing San Francisco Proper Hotel!",

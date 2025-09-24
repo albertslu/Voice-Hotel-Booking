@@ -16,5 +16,8 @@ python-dotenv==1.0.0
 # Date/Time
 python-dateutil==2.8.2
 
+# Redis for session management
+redis>=5.0.0
+
 # Amadeus SDK
 amadeus==8.1.0
