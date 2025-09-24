@@ -161,6 +161,25 @@ coverage/
 # AWS
 .aws/
 
+# SSH Keys and Certificates
+*.pem
+*.key
+*-key
+*_key
+*.pub
+id_rsa*
+id_ed25519*
+id_ecdsa*
+shared-access-key*
+coco-key*
+
+# SSL/TLS Certificates
+*.crt
+*.cert
+*.cer
+*.p12
+*.pfx
+
 # Temporary files
 tmp/
 temp/
