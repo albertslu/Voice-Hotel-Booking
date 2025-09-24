@@ -26,7 +26,7 @@ async def vapi_webhook(request: Request):
         message_type = message.get("type")
         
         # Only handle function calls - VAPI handles conversation flow
-        if message_type == "tool-calls":
+        if message_type in ["tool-calls", "function-call"]:
             return await handle_function_call(payload)
         else:
             # For other message types, just acknowledge
@@ -43,17 +43,23 @@ async def handle_function_call(payload: Dict[Any, Any]):
         message = payload.get("message", {})
         message_type = message.get("type")
         
-        # Handle tool-calls format
+        # Handle both tool-calls and function-call formats
         tool_calls = message.get("toolCalls", [])
-        if not tool_calls:
-            logger.warning("No tool calls found in tool-calls message")
-            return JSONResponse({"error": "No tool calls found"}, status_code=400)
+        function_call = message.get("functionCall", {})
         
-        # Process the first tool call
-        tool_call = tool_calls[0]
-        function_info = tool_call.get("function", {})
-        function_name = function_info.get("name")
-        parameters = function_info.get("arguments", {})
+        if tool_calls:
+            # Handle tool-calls format
+            tool_call = tool_calls[0]
+            function_info = tool_call.get("function", {})
+            function_name = function_info.get("name")
+            parameters = function_info.get("arguments", {})
+        elif function_call:
+            # Handle function-call format
+            function_name = function_call.get("name")
+            parameters = function_call.get("parameters", {})
+        else:
+            logger.warning("No tool calls or function calls found in message")
+            return JSONResponse({"error": "No function calls found"}, status_code=400)
         
         logger.info(f"Function call: {function_name} with parameters: {parameters}")
         logger.info(f"Function name type: {type(function_name)}, repr: {repr(function_name)}")
