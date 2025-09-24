@@ -230,80 +230,80 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
             if not rates:
                 return "I'm sorry, I couldn't find any available rates for San Francisco Proper Hotel for those dates."
             
-        # Smart room selection based on occasion and party size
-        selected_rates = select_best_rates(rates, guests, occasion)
-        
-        # TODO: Trigger browser automation API to start booking process with search parameters
-        booking_session_id = f"booking_{int(datetime.now().timestamp())}"
-        
-        # Store room details for later selection in book_hotel_1
-        room_options = []
-        for i, rate in enumerate(selected_rates):
-            room_options.append({
-                "choice_number": i + 1,
-                "room_code": rate.get("roomCode"),
-                "room_name": get_room_name(rate.get("roomCode", "")),
-                "rate_package": rate.get("description", ""),
-                "price_before_tax": rate.get("basePriceBeforeTax", 0),
-                "total_with_fees": rate.get("tax", {}).get("totalWithTaxesAndFees", 0),
-                "rate_data": rate  # Store full rate data for browser automation
-            })
-        
-        # Prepare automation payload for browser automation service
-        automation_payload = {
-            "action": "start_booking_with_search",
-            "step": "search_and_initialize",
-            "data": {
-                "check_in_date": check_in_date,
-                "check_out_date": check_out_date,
-                "adults": guests,
-                "children": 0,
-                "hotel": "sf-proper",
-                "selected_rates": selected_rates,
-                "room_options": room_options
-            },
-            "session_id": booking_session_id
-        }
-        
-        logger.info(f"Browser automation payload for search: {automation_payload}")
-        
-        # TODO: Replace with actual API call to browser automation service
-        # response = await browser_automation_client.start_booking_with_search(automation_payload)
-        
-        # TODO: Store room_options in session/cache for book_hotel_1 to access
-        # For now, we'll include it in the response for the AI to pass along
-        # In production, you'd store this in Redis/database with the session_id
-        
-        # Format selected rates for voice response
-        rate_descriptions = []
-        for i, rate in enumerate(selected_rates):
-            price_before_tax = rate.get("basePriceBeforeTax", 0)
-            total_with_fees = rate.get("tax", {}).get("totalWithTaxesAndFees", 0)
-            room_code = rate.get("roomCode", "Room")
+            # Smart room selection based on occasion and party size
+            selected_rates = select_best_rates(rates, guests, occasion)
             
-            # Get room type name and rate package description
-            room_name = get_room_name(room_code)
-            rate_package = rate.get("description", "")
+            # TODO: Trigger browser automation API to start booking process with search parameters
+            booking_session_id = f"booking_{int(datetime.now().timestamp())}"
             
-            # Combine room type and package for better description
-            if rate_package and rate_package != room_name:
-                full_description = f"{room_name} ({rate_package})"
-            else:
-                full_description = room_name
+            # Store room details for later selection in book_hotel_1
+            room_options = []
+            for i, rate in enumerate(selected_rates):
+                room_options.append({
+                    "choice_number": i + 1,
+                    "room_code": rate.get("roomCode"),
+                    "room_name": get_room_name(rate.get("roomCode", "")),
+                    "rate_package": rate.get("description", ""),
+                    "price_before_tax": rate.get("basePriceBeforeTax", 0),
+                    "total_with_fees": rate.get("tax", {}).get("totalWithTaxesAndFees", 0),
+                    "rate_data": rate  # Store full rate data for browser automation
+                })
             
-            description = f"{i + 1}. {full_description} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
-            rate_descriptions.append(description)
-        
-        result_text = f"Perfect! I found the ideal options for your stay:\n" + "\n".join(rate_descriptions) + f"\n\nI've started preparing your booking (Session: {booking_session_id}). Which room would you like to book? I'll need your name, email, and phone number to proceed."
-        logger.info(f"AZDS API returned {len(rates)} rates, booking session started: {booking_session_id}")
-        
-        # Return structured data for VAPI that includes both the spoken response and booking data
-        return {
-            "message": result_text,  # What the AI will speak
-            "session_id": booking_session_id,  # For the next booking step
-            "room_options": room_options,  # Room details for browser automation
-            "search_completed": True
-        }
+            # Prepare automation payload for browser automation service
+            automation_payload = {
+                "action": "start_booking_with_search",
+                "step": "search_and_initialize",
+                "data": {
+                    "check_in_date": check_in_date,
+                    "check_out_date": check_out_date,
+                    "adults": guests,
+                    "children": 0,
+                    "hotel": "sf-proper",
+                    "selected_rates": selected_rates,
+                    "room_options": room_options
+                },
+                "session_id": booking_session_id
+            }
+            
+            logger.info(f"Browser automation payload for search: {automation_payload}")
+            
+            # TODO: Replace with actual API call to browser automation service
+            # response = await browser_automation_client.start_booking_with_search(automation_payload)
+            
+            # TODO: Store room_options in session/cache for book_hotel_1 to access
+            # For now, we'll include it in the response for the AI to pass along
+            # In production, you'd store this in Redis/database with the session_id
+            
+            # Format selected rates for voice response
+            rate_descriptions = []
+            for i, rate in enumerate(selected_rates):
+                price_before_tax = rate.get("basePriceBeforeTax", 0)
+                total_with_fees = rate.get("tax", {}).get("totalWithTaxesAndFees", 0)
+                room_code = rate.get("roomCode", "Room")
+                
+                # Get room type name and rate package description
+                room_name = get_room_name(room_code)
+                rate_package = rate.get("description", "")
+                
+                # Combine room type and package for better description
+                if rate_package and rate_package != room_name:
+                    full_description = f"{room_name} ({rate_package})"
+                else:
+                    full_description = room_name
+                
+                description = f"{i + 1}. {full_description} - ${price_before_tax:.0f} per night, ${total_with_fees:.0f} total with taxes and fees"
+                rate_descriptions.append(description)
+            
+            result_text = f"Perfect! I found the ideal options for your stay:\n" + "\n".join(rate_descriptions) + f"\n\nI've started preparing your booking (Session: {booking_session_id}). Which room would you like to book? I'll need your name, email, and phone number to proceed."
+            logger.info(f"AZDS API returned {len(rates)} rates, booking session started: {booking_session_id}")
+            
+            # Return structured data for VAPI that includes both the spoken response and booking data
+            return {
+                "message": result_text,  # What the AI will speak
+                "session_id": booking_session_id,  # For the next booking step
+                "room_options": room_options,  # Room details for browser automation
+                "search_completed": True
+            }
             
         except Exception as e:
             logger.error(f"Error calling AZDS API: {e}")
