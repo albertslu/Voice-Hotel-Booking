@@ -86,7 +86,7 @@ async def handle_function_call(payload: Dict[Any, Any]):
             if not customer:
                 # Try alternative path
                 customer = payload.get("customer", {})
-            caller_phone = customer.get("number", "")
+            caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
             logger.info(f"Extracted caller phone: {caller_phone}")
         except Exception as e:
             logger.warning(f"Could not extract caller phone: {e}")
