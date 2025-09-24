@@ -7,6 +7,7 @@ from app.services.azds_service import azds_client
 from app.services.session_manager import session_manager
 from datetime import datetime
 import json
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ async def vapi_webhook(request: Request):
             return await handle_function_call(payload)
         else:
             # For other message types, just acknowledge
-            logger.info(f"Received message type: {message_type}")
+            # logger.info(f"Received message type: {message_type}")
             return JSONResponse({"status": "received"})
             
     except Exception as e:
@@ -253,6 +254,16 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
     """
     try:
         logger.info("Starting search_hotel execution")
+
+        # INSERT_YOUR_CODE
+        # Create a search.md file with the search parameters for debugging/auditing
+        try:
+            with open("search.md", "w") as f:
+                f.write("# Hotel Search Parameters\n\n")
+                for k, v in parameters.items():
+                    f.write(f"- **{k}**: {v}\n")
+        except Exception as e:
+            logger.warning(f"Could not write search.md: {e}")
         
         # Extract parameters
         check_in_date = parameters.get("check_in_date")
@@ -372,8 +383,20 @@ async def search_hotel(parameters: Dict[str, Any]) -> JSONResponse:
                 rate_descriptions.append(description)
             
             result_text = f"Perfect! I found the ideal options for your stay:\n" + "\n".join(rate_descriptions) + f"\n\nI've started preparing your booking (Session: {booking_session_id}). Which room would you like to book? I'll need your name, email, and phone number to proceed."
-            logger.info(f"AZDS API returned {len(rates)} rates, booking session started: {booking_session_id}")
+            logger.info(f"AZDS API returned {len(rates)} rates, booking session started: {booking_session_id}")       
             
+            # Create a JSON file with room options for debugging or logging purposes
+
+            output_dir = "./search_test_results"
+            os.makedirs(output_dir, exist_ok=True)
+            json_filename = f"{output_dir}/room_options_{booking_session_id}.json"
+            try:
+                with open(json_filename, "w") as f:
+                    json.dump(room_options, f, indent=2)
+                logger.info(f"Room options written to {json_filename}")
+            except Exception as e:
+                logger.error(f"Failed to write room options JSON: {e}")
+
             # Return structured data for VAPI that includes both the spoken response and booking data
             return {
                 "message": result_text,  # What the AI will speak

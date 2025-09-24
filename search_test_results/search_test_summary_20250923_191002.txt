@@ -1,0 +1,14 @@
+Search Hotel Function Test Summary
+==================================
+Timestamp: Tue Sep 23 19:10:06 PDT 2025
+Base URL: https://many-birds-rest.loca.lt
+Webhook Endpoint: /webhook/vapi
+
+Test Results:
+=============
+This test focused specifically on the search_hotel webhook endpoint.
+Check the individual log files in this directory for detailed responses.
+
+Files generated:
+-rw-r--r--  1 eylonmizrahi  staff  9856 Sep 23 19:10 ./search_test_results/search_hotel_test_20250923_191002.log
+-rw-r--r--  1 eylonmizrahi  staff   373 Sep 23 19:10 ./search_test_results/search_test_summary_20250923_191002.txt

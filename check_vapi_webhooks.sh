@@ -6,7 +6,9 @@
 set -e  # Exit on any error
 
 # Configuration
-BASE_URL="${BASE_URL:-http://localhost:8000}"
+# BASE_URL="${BASE_URL:-http://localhost:8000}"
+# BASE_URL="${BASE_URL:-https://api.guestara.ai}"
+BASE_URL="${BASE_URL:-https://blue-times-glow.loca.lt}"
 WEBHOOK_ENDPOINT="/webhook/vapi"
 TEST_ENDPOINT="/webhook/test"
 VERBOSE="${VERBOSE:-false}"
@@ -490,6 +492,7 @@ show_usage() {
     echo "Usage: $0 [OPTIONS] [TEST_TYPES]"
     echo ""
     echo "Options:"
+    # echo "  -u, --url URL          Base URL for the API (default: http://localhost:8000)"
     echo "  -u, --url URL          Base URL for the API (default: http://localhost:8000)"
     echo "  -v, --verbose          Enable verbose output"
     echo "  -h, --help             Show this help message"
