@@ -459,7 +459,8 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Extract caller phone number from VAPI payload
         caller_phone = None
         try:
-            customer = call_data.get("customer", {}) if call_data else {}
+            call_info = call_data.get("call", {}) if call_data else {}
+            customer = call_info.get("customer", {})
             caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
             logger.info(f"Extracted caller phone: {caller_phone}")
         except Exception as e:
@@ -661,7 +662,8 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
         # Extract caller phone number from VAPI payload
         caller_phone = None
         try:
-            customer = call_data.get("customer", {}) if call_data else {}
+            call_info = call_data.get("call", {}) if call_data else {}
+            customer = call_info.get("customer", {})
             caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
             logger.info(f"Extracted caller phone: {caller_phone}")
         except Exception as e:
