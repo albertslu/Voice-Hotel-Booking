@@ -445,22 +445,47 @@ async def book_hotel_1(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
     VAPI Tool: Step 1 - Select room from search results
     
     Expected parameters from VAPI:
-    - session_id: string (from search_hotel) [REQUIRED]
     - room_choice: number (1 or 2, which room from search results) [REQUIRED]
+    
+    Note: Session ID is automatically retrieved using caller's phone number
     """
     try:
         logger.info("Starting book_hotel_1 execution")
         
+        # Extract caller phone number from VAPI payload
+        caller_phone = None
+        try:
+            customer = call_data.get("customer", {}) if call_data else {}
+            caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
+            logger.info(f"Extracted caller phone: {caller_phone}")
+        except Exception as e:
+            logger.error(f"Failed to extract caller phone: {e}")
+        
         # Extract parameters
-        session_id = parameters.get("session_id")
         room_choice = int(parameters.get("room_choice", 1))
+        
+        # Find session ID using caller's phone number
+        session_id = None
+        if caller_phone:
+            # Look for the most recent session for this phone number
+            # We'll search through recent session IDs to find one with matching caller_phone
+            import time
+            current_time = int(time.time())
+            # Check sessions from the last hour
+            for i in range(3600):  # 1 hour = 3600 seconds
+                test_session_id = f"booking_{current_time - i}"
+                test_session_data = session_manager.get_session(test_session_id)
+                if test_session_data and test_session_data.get("caller_phone") == caller_phone:
+                    session_id = test_session_id
+                    logger.info(f"Found session for phone {caller_phone}: {session_id}")
+                    break
         
         logger.info(f"Book Hotel Step 1 - Session: {session_id}, Room Choice: {room_choice}")
         
-        # Validate required parameters
+        # Validate session found
         if not session_id:
             return JSONResponse({
-                "result": "I need the booking session ID to continue. Please search for hotels first.",
+                "result": "I couldn't find your booking session. Please search for hotels first.",
                 "success": False,
                 "step": 1
             }, status_code=400)
@@ -607,14 +632,10 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
     """
     VAPI Tool: Step 2 - Collect complete guest information and payment details to complete booking
     
-    Expected parameters from VAPI:
-    - session_id: string (from previous steps) [REQUIRED]
-    
     Guest Information:
     - first_name: string (guest first name) [REQUIRED]
     - last_name: string (guest last name) [REQUIRED]
     - email: string (contact email) [REQUIRED]
-    - phone: string (contact phone) [AUTO-CAPTURED from VAPI caller ID, fallback to parameter]
     - address: string (street address) [REQUIRED]
     - zip_code: string (postal/zip code) [REQUIRED]
     - city: string (city) [REQUIRED]
@@ -627,12 +648,35 @@ async def book_hotel_2(parameters: Dict[str, Any], call_data: Dict[str, Any] = N
     - expiry_year: string (YYYY format) [REQUIRED]
     - cvv: string (3-4 digit security code) [REQUIRED]
     - cardholder_name: string (name on card) [REQUIRED]
+    
+    Note: Session ID and phone number are automatically retrieved using caller's phone number
     """
     try:
         logger.info("Starting book_hotel_2 execution")
         
-        # Extract parameters
-        session_id = parameters.get("session_id")
+        # Extract caller phone number from VAPI payload
+        caller_phone = None
+        try:
+            customer = call_data.get("customer", {}) if call_data else {}
+            caller_phone = customer.get("number", "").replace("+", "").replace("-", "").replace(" ", "")
+            logger.info(f"Extracted caller phone: {caller_phone}")
+        except Exception as e:
+            logger.error(f"Failed to extract caller phone: {e}")
+        
+        # Find session ID using caller's phone number
+        session_id = None
+        if caller_phone:
+            # Look for the most recent session for this phone number
+            import time
+            current_time = int(time.time())
+            # Check sessions from the last hour
+            for i in range(3600):  # 1 hour = 3600 seconds
+                test_session_id = f"booking_{current_time - i}"
+                test_session_data = session_manager.get_session(test_session_id)
+                if test_session_data and test_session_data.get("caller_phone") == caller_phone:
+                    session_id = test_session_id
+                    logger.info(f"Found session for phone {caller_phone}: {session_id}")
+                    break
         
         # Validate session exists
         if not session_id:
