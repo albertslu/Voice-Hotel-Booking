@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     serpapi_key: Optional[str] = None
     serpapi_base_url: Optional[str] = "https://serpapi.com/search"
     
+    # MakCorps API Configuration
+    makcorps_api_key: Optional[str] = None
+    
     # Supabase Configuration
     supabase_url: str
     supabase_anon_key: str
@@ -54,6 +57,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = "../.env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields in .env file
         
         @classmethod
         def parse_env_var(cls, field_name: str, raw_val: str):

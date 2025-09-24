@@ -1,0 +1,1 @@
+cd /Users/eylonmizrahi/Desktop/apps/casixty-org/Voice-Hotel-Booking/backend && source venv/bin/activate && python main.py

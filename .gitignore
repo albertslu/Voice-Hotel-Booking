@@ -188,3 +188,5 @@ temp/
 
 # Service files
 *.service
+
+webhook_test_results
