@@ -409,7 +409,7 @@ async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] =
                 rate_descriptions.append(description)
             
             # Return all available rates for VAPI to intelligently select from
-            result_text = f"Perfect! I found {len(selected_rates)} available options for your stay from {check_in_date} to {check_out_date} for {guests} guest{'s' if guests != 1 else ''}:\n\n" + "\n".join(rate_descriptions) + f"\n\nBooking session started: {booking_session_id}"
+            result_text = f"Perfect! I found {len(selected_rates)} available options for your stay from {check_in_date} to {check_out_date} for {guests} guest{'s' if guests != 1 else ''}:\n\n" + "\n".join(rate_descriptions)
             logger.info(f"AZDS API returned {len(rates)} rates, booking session started: {booking_session_id}")       
             
             # Create a JSON file with room options for debugging or logging purposes
