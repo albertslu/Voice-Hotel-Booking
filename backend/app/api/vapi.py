@@ -511,22 +511,14 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
     try:
         logger.info("Starting book_hotel_1 execution")
         
-        # Extract parameters - VAPI passes room choice number (1-based)
-        room_choice_param = parameters.get("room_choice")
+        # Extract parameters - VAPI passes room_code and rate_code for exact matching
+        room_code = parameters.get("room_code")
+        rate_code = parameters.get("rate_code")
         
-        logger.info(f"Received room_choice: {room_choice_param}")
+        logger.info(f"Received room_code: {room_code}, rate_code: {rate_code}")
         
-        # Default to first room if no specific selection provided
+        # Default to first room if no codes provided
         room_choice = 1
-        
-        # If room_choice is provided as number, use it
-        if room_choice_param is not None:
-            try:
-                room_choice = int(room_choice_param)
-                logger.info(f"Using room choice number: {room_choice}")
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid room_choice: {room_choice_param}, defaulting to 1")
-                room_choice = 1
         
         # Get caller phone from payload (same extraction logic as handle_function_call)
         caller_phone = None
@@ -581,6 +573,20 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 "step": 1
             }, status_code=400)
         
+        # If room_code and rate_code provided, find exact match
+        if room_code and rate_code:
+            logger.info(f"Looking for exact match: room_code={room_code}, rate_code={rate_code}")
+            for i, room_option in enumerate(room_options):
+                option_room_code = room_option.get("room_code")
+                rate_data = room_option.get("rate_data", {})
+                option_rate_code = rate_data.get("code")
+                
+                if option_room_code == room_code and option_rate_code == rate_code:
+                    room_choice = i + 1  # Convert to 1-based index
+                    logger.info(f"Found exact match - choice {room_choice}: {room_option.get('room_name')} ({room_option.get('rate_package')})")
+                    break
+            else:
+                logger.warning(f"No exact match found for room_code={room_code}, rate_code={rate_code}, using default room 1")
         
         # Validate room choice (now accepts any valid index from the room options)
         if room_choice < 1 or room_choice > len(room_options):
