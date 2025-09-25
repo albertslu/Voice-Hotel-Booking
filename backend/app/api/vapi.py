@@ -299,7 +299,8 @@ async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] =
             selected_rates = rates  # Send all available rates for AI selection
             
             # Create booking session with Redis
-            booking_session_id = f"booking_{int(datetime.now().timestamp())}"
+            import time
+            booking_session_id = f"booking_{int(time.time())}"
             
             # Store room details for later selection in book_hotel_1
             room_options = []
