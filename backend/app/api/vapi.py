@@ -615,13 +615,35 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         
         room_description = f"{selected_room.get('room_name')} ({selected_room.get('rate_package')})" if selected_room.get('rate_package') else selected_room.get('room_name')
         
+        # Automatically call book_hotel_2 to collect guest information and complete booking
+        logger.info("Auto-calling book_hotel_2 from book_hotel_1 to collect guest information")
+        
+        try:
+            # Call book_hotel_2 with empty parameters - it will ask for the information
+            booking_result = await book_hotel_2({}, payload)
+            
+            # Prepend the room selection confirmation to the book_hotel_2 response
+            if isinstance(booking_result, JSONResponse):
+                import json
+                booking_data = json.loads(booking_result.body.decode())
+                original_result = booking_data.get("result", "")
+                
+                # Combine room selection message with book_hotel_2's request for info
+                combined_result = f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. {original_result}"
+                
+                booking_data["result"] = combined_result
+                return JSONResponse(booking_data)
+            
+        except Exception as e:
+            logger.error(f"Auto-calling book_hotel_2 failed: {e}")
+        
+        # Fallback if auto-call fails
         return JSONResponse({
-            "result": f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. Now I need your information to complete the booking. What name should I put the reservation under?",
+            "result": f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. Now I need your information to complete the booking. What's your full name?",
             "success": True,
             "step": 1,
             "session_id": session_id,
-            "selected_room": selected_room,
-            "next_step": "collect_guest_and_payment_info"
+            "selected_room": selected_room
         })
         
     except Exception as e:
