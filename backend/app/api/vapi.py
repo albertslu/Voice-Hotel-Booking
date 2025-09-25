@@ -577,21 +577,53 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
             logger.info(f"Looking for room matching: '{room_selection}'")
             room_selection_lower = room_selection.lower()
             
-            # Simple matching against stored room options
+            best_match = None
+            best_score = 0
+            
+            # Find the best matching room by scoring each option
             for i, room_option in enumerate(room_options):
                 room_name = room_option.get("room_name", "").lower()
                 rate_package = room_option.get("rate_package", "").lower()
                 full_desc = f"{room_name} {rate_package}".lower()
                 
-                # Check if key words from selection appear in room description
+                # Score this room option
+                score = 0
                 selection_words = [w for w in room_selection_lower.split() if len(w) > 2]
-                matches = sum(1 for word in selection_words if word in full_desc)
                 
-                # If most words match, select this room
-                if matches >= len(selection_words) * 0.6:  # 60% of words must match
-                    room_choice = i + 1
-                    logger.info(f"Found matching room - choice {room_choice}: {room_name} ({rate_package})")
-                    break
+                # Higher score for exact room name matches
+                if "proper" in room_selection_lower and "proper" in room_name:
+                    score += 10
+                if "double" in room_selection_lower and "double" in room_name:
+                    score += 10
+                if "bunk" in room_selection_lower and "bunk" in room_name:
+                    score += 10
+                if "suite" in room_selection_lower and "suite" in room_name:
+                    score += 10
+                if "king" in room_selection_lower and "king" in room_name:
+                    score += 10
+                
+                # Score for rate package matches
+                if "fall" in room_selection_lower and "fall" in rate_package:
+                    score += 5
+                if "suite life" in room_selection_lower and "suite life" in rate_package:
+                    score += 5
+                
+                # General word matching (lower priority)
+                word_matches = sum(1 for word in selection_words if word in full_desc)
+                score += word_matches
+                
+                logger.info(f"Room {i+1} '{room_name} ({rate_package})' scored {score}")
+                
+                if score > best_score:
+                    best_score = score
+                    best_match = i + 1
+            
+            if best_match and best_score >= 3:  # Require minimum score
+                room_choice = best_match
+                selected_room_info = room_options[room_choice - 1]
+                logger.info(f"Best match found - choice {room_choice}: {selected_room_info.get('room_name')} ({selected_room_info.get('rate_package')}) with score {best_score}")
+            else:
+                logger.warning(f"No good match found for '{room_selection}', using default room 1")
         
         # Validate room choice (now accepts any valid index from the room options)
         if room_choice < 1 or room_choice > len(room_options):
