@@ -138,7 +138,6 @@ async def handle_function_call(payload: Dict[Any, Any]):
             tool_call_id = tool_calls[0].get("id") if tool_calls else "unknown"
             if hasattr(result, 'body'):
                 # Extract the JSON content from JSONResponse
-                import json
                 response_data = json.loads(result.body.decode())
                 return JSONResponse({
                     "results": [
@@ -166,7 +165,6 @@ async def handle_function_call(payload: Dict[Any, Any]):
             tool_call_id = tool_calls[0].get("id") if tool_calls else "unknown"
             if hasattr(result, 'body'):
                 # Extract the JSON content from JSONResponse
-                import json
                 response_data = json.loads(result.body.decode())
                 return JSONResponse({
                     "results": [
