@@ -542,17 +542,18 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
             # Try to find matching room by name/description
             for i, room_option in enumerate(room_options):
                 room_desc = room_option.get("description", "").lower()
-                room_type = room_option.get("room_type", "").lower()
-                rate_plan = room_option.get("rate_plan", "").lower()
+                room_name = room_option.get("room_name", "").lower()
+                rate_package = room_option.get("rate_package", "").lower()
                 
-                # Check if selection matches room type, rate plan, or description
+                # Check if selection matches room name, rate package, or description
                 if (room_selection_lower in room_desc or 
-                    room_selection_lower in room_type or 
-                    room_selection_lower in rate_plan or
+                    room_selection_lower in room_name or 
+                    room_selection_lower in rate_package or
                     any(word in room_desc for word in room_selection_lower.split()) or
-                    any(word in room_type for word in room_selection_lower.split())):
+                    any(word in room_name for word in room_selection_lower.split()) or
+                    any(word in rate_package for word in room_selection_lower.split())):
                     room_choice = i + 1  # Convert to 1-based index
-                    logger.info(f"Matched room selection to choice {room_choice}: {room_desc}")
+                    logger.info(f"Matched room selection to choice {room_choice}: {room_name} ({rate_package})")
                     break
         
         # Validate room choice (now accepts any valid index from the room options)
