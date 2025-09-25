@@ -519,27 +519,6 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         # Default to first room if no specific selection provided
         room_choice = 1
         
-        # If room selection provided, find matching room from stored options
-        if room_selection:
-            logger.info(f"Looking for room matching: '{room_selection}'")
-            room_selection_lower = room_selection.lower()
-            
-            # Simple matching against stored room options
-            for i, room_option in enumerate(room_options):
-                room_name = room_option.get("room_name", "").lower()
-                rate_package = room_option.get("rate_package", "").lower()
-                full_desc = f"{room_name} {rate_package}".lower()
-                
-                # Check if key words from selection appear in room description
-                selection_words = [w for w in room_selection_lower.split() if len(w) > 2]
-                matches = sum(1 for word in selection_words if word in full_desc)
-                
-                # If most words match, select this room
-                if matches >= len(selection_words) * 0.6:  # 60% of words must match
-                    room_choice = i + 1
-                    logger.info(f"Found matching room - choice {room_choice}: {room_name} ({rate_package})")
-                    break
-        
         # Get caller phone from payload (same extraction logic as handle_function_call)
         caller_phone = None
         try:
@@ -593,6 +572,26 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 "step": 1
             }, status_code=400)
         
+        # If room selection provided, find matching room from stored options
+        if room_selection:
+            logger.info(f"Looking for room matching: '{room_selection}'")
+            room_selection_lower = room_selection.lower()
+            
+            # Simple matching against stored room options
+            for i, room_option in enumerate(room_options):
+                room_name = room_option.get("room_name", "").lower()
+                rate_package = room_option.get("rate_package", "").lower()
+                full_desc = f"{room_name} {rate_package}".lower()
+                
+                # Check if key words from selection appear in room description
+                selection_words = [w for w in room_selection_lower.split() if len(w) > 2]
+                matches = sum(1 for word in selection_words if word in full_desc)
+                
+                # If most words match, select this room
+                if matches >= len(selection_words) * 0.6:  # 60% of words must match
+                    room_choice = i + 1
+                    logger.info(f"Found matching room - choice {room_choice}: {room_name} ({rate_package})")
+                    break
         
         # Validate room choice (now accepts any valid index from the room options)
         if room_choice < 1 or room_choice > len(room_options):
