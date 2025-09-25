@@ -511,22 +511,34 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
     try:
         logger.info("Starting book_hotel_1 execution")
         
-        # Extract parameters - handle both number and natural language selection
-        room_choice_param = parameters.get("room_choice")
+        # Extract parameters - VAPI passes natural language room selection
         room_selection = parameters.get("room_selection", "")
         
-        logger.info(f"Received room_choice: {room_choice_param}, room_selection: '{room_selection}'")
+        logger.info(f"Received room_selection: '{room_selection}'")
         
-        # Default to first room if no specific choice provided
+        # Default to first room if no specific selection provided
         room_choice = 1
         
-        # If room_choice is provided as number, use it
-        if room_choice_param is not None:
-            try:
-                room_choice = int(room_choice_param)
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid room_choice: {room_choice_param}, defaulting to 1")
-                room_choice = 1
+        # If room selection provided, find matching room from stored options
+        if room_selection:
+            logger.info(f"Looking for room matching: '{room_selection}'")
+            room_selection_lower = room_selection.lower()
+            
+            # Simple matching against stored room options
+            for i, room_option in enumerate(room_options):
+                room_name = room_option.get("room_name", "").lower()
+                rate_package = room_option.get("rate_package", "").lower()
+                full_desc = f"{room_name} {rate_package}".lower()
+                
+                # Check if key words from selection appear in room description
+                selection_words = [w for w in room_selection_lower.split() if len(w) > 2]
+                matches = sum(1 for word in selection_words if word in full_desc)
+                
+                # If most words match, select this room
+                if matches >= len(selection_words) * 0.6:  # 60% of words must match
+                    room_choice = i + 1
+                    logger.info(f"Found matching room - choice {room_choice}: {room_name} ({rate_package})")
+                    break
         
         # Get caller phone from payload (same extraction logic as handle_function_call)
         caller_phone = None
@@ -581,38 +593,6 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 "step": 1
             }, status_code=400)
         
-        # If natural language room selection provided, try to match it
-        if room_selection and room_choice == 1:  # Only use natural language if no specific number provided
-            logger.info(f"Attempting to match room selection: '{room_selection}'")
-            room_selection_lower = room_selection.lower()
-            
-            # Try to find matching room by name/description - be more precise
-            for i, room_option in enumerate(room_options):
-                room_desc = room_option.get("description", "").lower()
-                room_name = room_option.get("room_name", "").lower()
-                rate_package = room_option.get("rate_package", "").lower()
-                
-                # Create full room description for matching
-                full_room_desc = f"{room_name} ({rate_package})".lower()
-                
-                # First try exact substring match
-                if room_selection_lower in full_room_desc:
-                    room_choice = i + 1  # Convert to 1-based index
-                    logger.info(f"Exact match found - choice {room_choice}: {room_name} ({rate_package})")
-                    break
-                
-                # Then try matching key words (but require multiple matches for precision)
-                selection_words = [w.strip("()") for w in room_selection_lower.split() if len(w.strip("()")) > 2]
-                room_words = [w.strip("()") for w in full_room_desc.split() if len(w.strip("()")) > 2]
-                
-                # Count how many words match
-                matches = sum(1 for word in selection_words if word in room_words)
-                
-                # Require at least 2 significant word matches for a match
-                if matches >= 2 and len(selection_words) > 1:
-                    room_choice = i + 1  # Convert to 1-based index
-                    logger.info(f"Multi-word match found ({matches}/{len(selection_words)} words) - choice {room_choice}: {room_name} ({rate_package})")
-                    break
         
         # Validate room choice (now accepts any valid index from the room options)
         if room_choice < 1 or room_choice > len(room_options):
@@ -636,11 +616,14 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 "step": 1
             }, status_code=400)
         
-        # Update session with room selection
+        # Update session with room selection and store codes for browser automation
+        rate_data = selected_room.get("rate_data", {})
         session_updates = {
             "step": "room_selected",
             "room_choice": room_choice,
-            "selected_room": selected_room
+            "selected_room": selected_room,
+            "room_code": selected_room.get("room_code"),
+            "rate_code": rate_data.get("code")
         }
         
         session_updated = session_manager.update_session(session_id, session_updates)
