@@ -133,10 +133,59 @@ async def handle_function_call(payload: Dict[Any, Any]):
             logger.info("About to call book_hotel_1")
             result = await book_hotel_1(parameters, payload)
             logger.info(f"book_hotel_1 returned: {type(result)}")
-            return result
+            
+            # Wrap in VAPI format like other tools
+            tool_call_id = tool_calls[0].get("id") if tool_calls else "unknown"
+            if hasattr(result, 'body'):
+                # Extract the JSON content from JSONResponse
+                import json
+                response_data = json.loads(result.body.decode())
+                return JSONResponse({
+                    "results": [
+                        {
+                            "toolCallId": tool_call_id,
+                            "result": response_data.get("result", "Booking step completed"),
+                            "data": response_data  # Include full response data
+                        }
+                    ]
+                })
+            else:
+                return JSONResponse({
+                    "results": [
+                        {
+                            "toolCallId": tool_call_id,
+                            "result": str(result)
+                        }
+                    ]
+                })
         elif function_name == "book_hotel_2":
             # Step 2: Collect guest info and payment, complete booking
-            return await book_hotel_2(parameters, payload)
+            result = await book_hotel_2(parameters, payload)
+            
+            # Wrap in VAPI format like other tools
+            tool_call_id = tool_calls[0].get("id") if tool_calls else "unknown"
+            if hasattr(result, 'body'):
+                # Extract the JSON content from JSONResponse
+                import json
+                response_data = json.loads(result.body.decode())
+                return JSONResponse({
+                    "results": [
+                        {
+                            "toolCallId": tool_call_id,
+                            "result": response_data.get("result", "Booking completed"),
+                            "data": response_data  # Include full response data
+                        }
+                    ]
+                })
+            else:
+                return JSONResponse({
+                    "results": [
+                        {
+                            "toolCallId": tool_call_id,
+                            "result": str(result)
+                        }
+                    ]
+                })
         elif function_name == "start_over":
             # Clear current session and restart booking process
             return await start_over(parameters, payload.get("call", {}))
