@@ -639,7 +639,7 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         
         # Fallback if auto-call fails
         return JSONResponse({
-            "result": f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. Now I need your information to complete the booking. What's your full name?",
+            "result": f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. Now I need your information to complete the booking.",
             "success": True,
             "step": 1,
             "session_id": session_id,
