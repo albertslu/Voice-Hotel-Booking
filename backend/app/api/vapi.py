@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 from app.services import AmadeusHotelClient
 from app.services.azds_service import azds_client
 from app.services.session_manager import session_manager
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 import httpx
@@ -334,6 +334,12 @@ async def search_hotel(parameters: Dict[str, Any], caller_phone: Optional[str] =
                 logger.error(f"Failed to create session: {booking_session_id}")
                 return "I'm having trouble starting your booking. Please try again."
             
+            # Store phone-to-session mapping for easy lookup
+            if caller_phone:
+                phone_key = f"phone_session:{caller_phone}"
+                session_manager.redis_client.setex(phone_key, timedelta(hours=24), booking_session_id)
+                logger.info(f"Stored phone-to-session mapping: {caller_phone} -> {booking_session_id}")
+            
             # Prepare automation payload for browser automation service
             automation_payload = {
                 "action": "start_booking_with_search",
@@ -488,18 +494,18 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         # Find session ID using caller's phone number
         session_id = None
         if caller_phone:
-            # Look for the most recent session for this phone number
-            import time
-            current_time = int(time.time())
-            # Check sessions from the last hour
-            for i in range(3600):  # 1 hour = 3600 seconds
-                test_session_id = f"booking_{current_time - i}"
-                test_session_data = session_manager.get_session(test_session_id)
-                if test_session_data and test_session_data.get("caller_phone") == caller_phone:
-                    session_id = test_session_id
+            # Get session ID directly from Redis using phone number
+            phone_key = f"phone_session:{caller_phone}"
+            try:
+                from app.services.session_manager import session_manager
+                session_id = session_manager.redis_client.get(phone_key)
+                if session_id:
                     logger.info(f"Found session for phone {caller_phone}: {session_id}")
-                    break
-        
+                else:
+                    logger.warning(f"No session found for phone {caller_phone}")
+            except Exception as e:
+                logger.error(f"Error looking up session for phone {caller_phone}: {e}")
+
         logger.info(f"Book Hotel Step 1 - Session: {session_id}, Room Choice: {room_choice}")
         
         # Validate session found
@@ -709,18 +715,18 @@ async def book_hotel_2(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         # Find session ID using caller's phone number
         session_id = None
         if caller_phone:
-            # Look for the most recent session for this phone number
-            import time
-            current_time = int(time.time())
-            # Check sessions from the last hour
-            for i in range(3600):  # 1 hour = 3600 seconds
-                test_session_id = f"booking_{current_time - i}"
-                test_session_data = session_manager.get_session(test_session_id)
-                if test_session_data and test_session_data.get("caller_phone") == caller_phone:
-                    session_id = test_session_id
+            # Get session ID directly from Redis using phone number
+            phone_key = f"phone_session:{caller_phone}"
+            try:
+                from app.services.session_manager import session_manager
+                session_id = session_manager.redis_client.get(phone_key)
+                if session_id:
                     logger.info(f"Found session for phone {caller_phone}: {session_id}")
-                    break
-        
+                else:
+                    logger.warning(f"No session found for phone {caller_phone}")
+            except Exception as e:
+                logger.error(f"Error looking up session for phone {caller_phone}: {e}")
+
         # Validate session exists
         if not session_id:
             return JSONResponse({
