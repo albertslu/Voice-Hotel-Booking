@@ -458,8 +458,22 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
     try:
         logger.info("Starting book_hotel_1 execution")
         
-        # Extract parameters
-        room_choice = int(parameters.get("room_choice", 1))
+        # Extract parameters - handle both number and natural language selection
+        room_choice_param = parameters.get("room_choice")
+        room_selection = parameters.get("room_selection", "")
+        
+        logger.info(f"Received room_choice: {room_choice_param}, room_selection: '{room_selection}'")
+        
+        # Default to first room if no specific choice provided
+        room_choice = 1
+        
+        # If room_choice is provided as number, use it
+        if room_choice_param is not None:
+            try:
+                room_choice = int(room_choice_param)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid room_choice: {room_choice_param}, defaulting to 1")
+                room_choice = 1
         
         # Get caller phone from payload (same extraction logic as handle_function_call)
         caller_phone = None
@@ -514,10 +528,31 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 "step": 1
             }, status_code=400)
         
+        # If natural language room selection provided, try to match it
+        if room_selection and room_choice == 1:  # Only use natural language if no specific number provided
+            logger.info(f"Attempting to match room selection: '{room_selection}'")
+            room_selection_lower = room_selection.lower()
+            
+            # Try to find matching room by name/description
+            for i, room_option in enumerate(room_options):
+                room_desc = room_option.get("description", "").lower()
+                room_type = room_option.get("room_type", "").lower()
+                rate_plan = room_option.get("rate_plan", "").lower()
+                
+                # Check if selection matches room type, rate plan, or description
+                if (room_selection_lower in room_desc or 
+                    room_selection_lower in room_type or 
+                    room_selection_lower in rate_plan or
+                    any(word in room_desc for word in room_selection_lower.split()) or
+                    any(word in room_type for word in room_selection_lower.split())):
+                    room_choice = i + 1  # Convert to 1-based index
+                    logger.info(f"Matched room selection to choice {room_choice}: {room_desc}")
+                    break
+        
         # Validate room choice (now accepts any valid index from the room options)
         if room_choice < 1 or room_choice > len(room_options):
             return JSONResponse({
-                "result": f"Please choose a room option from the search results.",
+                "result": f"Please choose a room option from the search results. I have {len(room_options)} options available.",
                 "success": False,
                 "step": 1
             }, status_code=400)
