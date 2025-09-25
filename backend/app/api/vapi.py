@@ -651,35 +651,14 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         
         room_description = f"{selected_room.get('room_name')} ({selected_room.get('rate_package')})" if selected_room.get('rate_package') else selected_room.get('room_name')
         
-        # Automatically call book_hotel_2 to collect guest information and complete booking
-        logger.info("Auto-calling book_hotel_2 from book_hotel_1 to collect guest information")
-        
-        try:
-            # Call book_hotel_2 with empty parameters - it will ask for the information
-            booking_result = await book_hotel_2({}, payload)
-            
-            # Prepend the room selection confirmation to the book_hotel_2 response
-            if isinstance(booking_result, JSONResponse):
-                import json
-                booking_data = json.loads(booking_result.body.decode())
-                original_result = booking_data.get("result", "")
-                
-                # Combine room selection message with book_hotel_2's request for info
-                combined_result = f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. {original_result}"
-                
-                booking_data["result"] = combined_result
-                return JSONResponse(booking_data)
-            
-        except Exception as e:
-            logger.error(f"Auto-calling book_hotel_2 failed: {e}")
-        
-        # Fallback if auto-call fails
+        # Return room selection confirmation and ask for guest information
         return JSONResponse({
-            "result": f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. Now I need your information to complete the booking.",
+            "result": f"Perfect! I've selected the {room_description} at ${selected_room.get('price_before_tax'):.0f} per night. Now I need your information to complete the booking. May I have your first name, last name, email address, street address, zip code, city, state, and country?",
             "success": True,
             "step": 1,
             "session_id": session_id,
-            "selected_room": selected_room
+            "selected_room": selected_room,
+            "next_step": "Please call book_hotel_2 with the guest information to complete the booking."
         })
         
     except Exception as e:
@@ -794,12 +773,11 @@ async def book_hotel_2(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
         
         logger.info(f"Book Hotel Step 2 - Session: {session_id}, Guest: {first_name} {last_name}, Card ending: {card_number[-4:] if len(card_number) >= 4 else 'XXXX'}")
         
-        # Check for missing guest information
+        # Check for missing guest information (exclude phone since it's auto-captured)
         guest_fields = {
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "phone": phone,
             "address": address,
             "zip_code": zip_code,
             "city": city,
@@ -815,7 +793,6 @@ async def book_hotel_2(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                     "first_name": "first name",
                     "last_name": "last name",
                     "email": "email address",
-                    "phone": "phone number",
                     "address": "street address",
                     "zip_code": "zip code",
                     "city": "city",
@@ -824,12 +801,40 @@ async def book_hotel_2(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 }
                 missing_guest_fields.append(friendly_names.get(field_name, field_name))
         
+        # Add phone to missing fields only if we don't have it from auto-capture
+        if not phone:
+            missing_guest_fields.append("phone number")
+        
         if missing_guest_fields:
+            # Format the phone number for display if we have it
+            phone_display = ""
+            if phone:
+                # Format phone number for display (e.g., +1-608-215-9565)
+                if len(phone) == 10:
+                    phone_display = f"+1-{phone[:3]}-{phone[3:6]}-{phone[6:]}"
+                elif len(phone) == 11 and phone.startswith("1"):
+                    phone_display = f"+{phone[0]}-{phone[1:4]}-{phone[4:7]}-{phone[7:]}"
+                else:
+                    phone_display = phone
+            
+            # Create the response message
+            if len(missing_guest_fields) > 1:
+                fields_text = f"{', '.join(missing_guest_fields[:-1])} and {missing_guest_fields[-1]}"
+            else:
+                fields_text = missing_guest_fields[0]
+            
+            result_message = f"I still need your {fields_text}"
+            
+            # Add phone confirmation if we have it auto-captured
+            if phone and "phone number" not in missing_guest_fields:
+                result_message += f". The number I have for you is {phone_display}, is that correct?"
+            
             return JSONResponse({
-                "result": f"I still need your {', '.join(missing_guest_fields[:-1])} and {missing_guest_fields[-1]}" if len(missing_guest_fields) > 1 else f"I still need your {missing_guest_fields[0]}",
+                "result": result_message,
                 "success": False,
                 "step": 2,
-                "missing_fields": missing_guest_fields
+                "missing_fields": missing_guest_fields,
+                "auto_captured_phone": phone_display if phone else None
             }, status_code=400)
         
         # Check for missing payment information
