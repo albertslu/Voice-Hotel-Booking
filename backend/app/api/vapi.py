@@ -513,10 +513,10 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
                 "step": 1
             }, status_code=400)
         
-        # Validate room choice
-        if room_choice not in [1, 2]:
+        # Validate room choice (now accepts any valid index from the room options)
+        if room_choice < 1 or room_choice > len(room_options):
             return JSONResponse({
-                "result": "Please choose room 1 or room 2 from the search results.",
+                "result": f"Please choose a room option from the search results.",
                 "success": False,
                 "step": 1
             }, status_code=400)
