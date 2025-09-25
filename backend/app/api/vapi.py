@@ -586,21 +586,32 @@ async def book_hotel_1(parameters: Dict[str, Any], payload: Dict[str, Any] = Non
             logger.info(f"Attempting to match room selection: '{room_selection}'")
             room_selection_lower = room_selection.lower()
             
-            # Try to find matching room by name/description
+            # Try to find matching room by name/description - be more precise
             for i, room_option in enumerate(room_options):
                 room_desc = room_option.get("description", "").lower()
                 room_name = room_option.get("room_name", "").lower()
                 rate_package = room_option.get("rate_package", "").lower()
                 
-                # Check if selection matches room name, rate package, or description
-                if (room_selection_lower in room_desc or 
-                    room_selection_lower in room_name or 
-                    room_selection_lower in rate_package or
-                    any(word in room_desc for word in room_selection_lower.split()) or
-                    any(word in room_name for word in room_selection_lower.split()) or
-                    any(word in rate_package for word in room_selection_lower.split())):
+                # Create full room description for matching
+                full_room_desc = f"{room_name} ({rate_package})".lower()
+                
+                # First try exact substring match
+                if room_selection_lower in full_room_desc:
                     room_choice = i + 1  # Convert to 1-based index
-                    logger.info(f"Matched room selection to choice {room_choice}: {room_name} ({rate_package})")
+                    logger.info(f"Exact match found - choice {room_choice}: {room_name} ({rate_package})")
+                    break
+                
+                # Then try matching key words (but require multiple matches for precision)
+                selection_words = [w.strip("()") for w in room_selection_lower.split() if len(w.strip("()")) > 2]
+                room_words = [w.strip("()") for w in full_room_desc.split() if len(w.strip("()")) > 2]
+                
+                # Count how many words match
+                matches = sum(1 for word in selection_words if word in room_words)
+                
+                # Require at least 2 significant word matches for a match
+                if matches >= 2 and len(selection_words) > 1:
+                    room_choice = i + 1  # Convert to 1-based index
+                    logger.info(f"Multi-word match found ({matches}/{len(selection_words)} words) - choice {room_choice}: {room_name} ({rate_package})")
                     break
         
         # Validate room choice (now accepts any valid index from the room options)
